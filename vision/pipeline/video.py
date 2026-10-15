@@ -19,6 +19,7 @@ from vision.contracts.errors import VisionError
 from vision.contracts.run import ModelReference
 from vision.detectors.base import DetectorAdapter
 from vision.pipeline.manifest import make_manifest
+from vision.trackers.base import TrackerAdapter
 from vision.video import VideoError, VideoLimits, VideoReader, VideoWriter, probe_video
 from vision.video.capabilities import video_capabilities
 
@@ -51,12 +52,14 @@ def process_video(
 
     Models are loaded once per run. An injected adapter is a test/extension seam;
     its reference and mapping must match the selected catalog entry. Warm-up is
-    excluded from per-frame inference statistics. No tracking or object counting.
+    excluded from per-frame inference statistics. Tracking is run-local; no object counting.
     """
     started = perf_counter()
     input_path = input_path.expanduser().resolve()
-    if config.tracker_config_id is not None:
-        raise VideoError("unsupported_config", "Tracking is not available in Wave 2")
+    preset = (
+        load_catalog().get_tracker(config.tracker_config_id) if config.tracker_config_id else None
+    )
+    tracker: TrackerAdapter | None = None
     if not config.render_annotated_video:
         raise VideoError("unsupported_config", "This pipeline requires video export")
     model = load_catalog().get_model(config.detector_model_id) if config.detector_model_id else None
@@ -87,6 +90,7 @@ def process_video(
             "predict_ms",
             "inference_ms",
             "postprocessing_ms",
+            "tracking_ms",
             "render_ms",
             "encode_submit_ms",
         ),
@@ -135,6 +139,11 @@ def process_video(
                 raise VisionError(
                     "adapter_mismatch", "Adapter reference/mapping differs from catalog"
                 )
+        if preset is not None:
+            from vision.trackers.bytetrack import ByteTrackAdapter
+
+            tracker = ByteTrackAdapter(config.tracker)
+            tracker.reset()
         with VideoReader(input_path, limits, cfr_fallback_fps=cfr_fallback_fps) as reader:
             fps = cfr_fallback_fps or metadata.reported_fps
             with ExitStack() as stack:
@@ -151,6 +160,42 @@ def process_video(
                     "frames.csv",
                     ["frame_index", "timestamp_s", "timestamp_source", "export_timestamp_s"],
                 )
+                history = None
+                track_rows = None
+                if tracker is not None:
+                    from vision.trackers.history import TrackHistoryManager
+
+                    track_rows = csv_output(
+                        "tracks.csv",
+                        [
+                            "run_id",
+                            "video_id",
+                            "frame_index",
+                            "timestamp_s",
+                            "track_id",
+                            "class_id",
+                            "state",
+                            "confidence",
+                            "x1",
+                            "y1",
+                            "x2",
+                            "y2",
+                        ],
+                    )
+                    trajectory_rows = csv_output(
+                        "trajectories.csv", TrackHistoryManager.trajectory_fields
+                    )
+                    lifetime_rows = csv_output(
+                        "track-lifetimes.csv", TrackHistoryManager.lifetime_fields
+                    )
+                    history = TrackHistoryManager(
+                        manifest.run_id,
+                        config.video_id,
+                        config.tracker.history_points,
+                        trajectory_rows,
+                        lifetime_rows,
+                        min_observations=config.tracker.min_observations,
+                    )
                 detection_rows = timing_rows = None
                 if detector is not None:
                     detection_rows = csv_output(
@@ -179,6 +224,7 @@ def process_video(
                             "predict_ms",
                             "inference_ms",
                             "postprocessing_ms",
+                            "tracking_ms",
                             "render_ms",
                             "encode_submit_ms",
                         ],
@@ -216,7 +262,7 @@ def process_video(
                         first_s = frame.timestamp_s
                     last_s = frame.timestamp_s
                     batch = None
-                    render_ms = 0.0
+                    render_ms = tracking_ms = 0.0
                     output_frame = frame
                     if detector is not None:
                         from vision.rendering.detections import render_detections
@@ -238,13 +284,45 @@ def process_video(
                                 ]
                             )
                             observations[detector.class_names[item.class_id]] += 1
+                        tracks = ()
+                        if tracker is not None:
+                            before = perf_counter()
+                            tracks = tracker.update(frame, batch.detections)
+                            history.update(frame, tracks)
+                            for track in tracks:
+                                track_rows.writerow(
+                                    [
+                                        manifest.run_id,
+                                        config.video_id,
+                                        frame.frame_index,
+                                        frame.timestamp_s,
+                                        track.track_id,
+                                        track.class_id,
+                                        track.state,
+                                        track.confidence,
+                                        *track.bbox_xyxy,
+                                    ]
+                                )
+                            tracking_ms = (perf_counter() - before) * 1000
+                            totals["tracking_ms"] += tracking_ms
                         before = perf_counter()
-                        pixels, drawn = render_detections(
-                            frame.pixels,
-                            batch.detections,
-                            detector.class_names,
-                            config.detector.visualization_confidence,
-                        )
+                        if tracker is not None:
+                            from vision.rendering.tracks import render_tracks
+
+                            pixels, drawn = render_tracks(
+                                frame.pixels,
+                                tracks,
+                                history.histories,
+                                detector.class_names,
+                                config.detector.visualization_confidence,
+                            )
+                        else:
+                            pixels, drawn = render_detections(
+                                frame.pixels,
+                                batch.detections,
+                                detector.class_names,
+                                config.detector.visualization_confidence,
+                            )
                         render_ms = (perf_counter() - before) * 1000
                         drawn_count += drawn
                         output_frame = replace(frame, pixels=pixels)
@@ -270,6 +348,7 @@ def process_video(
                                 batch.predict_ms,
                                 batch.inference_ms,
                                 batch.postprocessing_ms,
+                                tracking_ms,
                                 render_ms,
                                 encode_ms,
                             ]
@@ -285,6 +364,8 @@ def process_video(
                     selected += 1
                 if selected == 0:
                     raise VideoError("empty_selection", "No frames fall in the selected interval")
+                if history is not None:
+                    history.finish()
             elapsed = perf_counter() - started
             summary = {
                 "schema_version": "1.0",
@@ -316,6 +397,15 @@ def process_video(
                 if totals["inference_ms"] > 0
                 else None,
             }
+            if tracker is not None:
+                summary["tracker"] = {
+                    "preset": preset.model_dump(mode="json"),
+                    "resolved_config": config.tracker.model_dump(mode="json"),
+                    "total_confirmed_tracks": history.total_tracks,
+                    "total_observations": history.total_observations,
+                    "tracking_ms": totals["tracking_ms"],
+                    "mot_evaluation": "not_evaluated_no_ground_truth",
+                }
             if detector is not None:
                 summary["detector"] = {
                     "model_id": model.model_id,
@@ -334,6 +424,8 @@ def process_video(
         names = ["video.mp4", "preview.png", "frames.csv"]
         if detector is not None:
             names += ["detections.csv", "timings.csv"]
+        if tracker is not None:
+            names += ["tracks.csv", "trajectories.csv", "track-lifetimes.csv"]
         for name in names:
             (output_dir / f"{name}.partial").replace(output_dir / name)
         if manifest is not None:
