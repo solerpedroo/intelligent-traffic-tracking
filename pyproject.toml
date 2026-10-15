@@ -30,6 +30,7 @@ detector = [
     "ultralytics-opencv-headless==8.4.177",
     "torch==2.14.1",
     "torchvision==0.29.1",
+    "lap==0.5.13",
 ]
 
 [[tool.uv.index]]
@@ -63,6 +64,6 @@ select = ["E", "F", "I", "B", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["vision/tests", "backend/tests"]
-addopts = "-ra --strict-markers -m 'not detector'"
-markers = ["detector: real YOLO integration requiring explicit local checkpoint and example image"]
+addopts = "-ra --strict-markers -m 'not detector and not tracker'"
+markers = ["tracker: real ByteTrack integration requiring the detector extra", "detector: real YOLO integration requiring explicit local checkpoint and example image"]
 filterwarnings = ["error"]
