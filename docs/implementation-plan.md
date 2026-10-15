@@ -1,6 +1,6 @@
 # Intelligent Traffic Tracking — Plano de implementação
 
-Versão: 1.0 · Data: 2026-10-15 · Estado: ondas 0–2 implementadas e validadas localmente; ondas 3–12 planejadas.
+Versão: 1.0 · Data: 2026-10-15 · Estado: ondas 0–3 implementadas e validadas localmente; ondas 4–12 planejadas.
 Fonte de requisitos: [project-scope.md](project-scope.md).
 Interpretação e adaptações: [scope-analysis.md](scope-analysis.md).
 
@@ -478,15 +478,16 @@ na 7; M01–M08 se distribuem entre núcleo e UI conforme descrito nas ondas.
 - **Drift Cursor/Codex:** AGENTS e cartões canônicos, regras Cursor curtas e
   sem decisões conflitantes, handoff factual para interrupções.
 
-Permanecem a decidir nas ondas responsáveis: versões/checkpoint/ByteTrack,
-ferramenta de timestamps, limites concretos de upload/retenção, codecs,
-datasets/GT e eventuais provedores de hospedagem. Registrar ADR ao resolver.
+Resolvidos nas ondas 1–3: PTS, codecs locais, checkpoint e implementação ByteTrack
+(ADRs 007, 009 e 010). Permanecem para as ondas responsáveis: upload/retenção,
+datasets/GT efetivamente auditados e eventuais provedores de hospedagem.
 
 ## 10. Estado atual e próximo passo
 
-Ondas 0–2 implementadas: fundação, CLI de vídeo, PTS/VFR, export e YOLO11n
-com checkpoint verificado, boxes originais, manifest e timings. Evidências nos
-cartões [0](agentic/tasks/wave-0-foundation.md), [1](agentic/tasks/wave-1-video-cli.md)
-e [2](agentic/tasks/wave-2-detection.md). CI remota não foi verificada; datasets
-reais ainda precisam de aquisição/auditoria. Próxima: [Onda 3](agentic/tasks/wave-3-tracking.md).
-Não carregar modelos nem antecipar features de outras ondas ao retomar o trabalho.
+Ondas 0–3 implementadas: fundação, CLI de vídeo, PTS/VFR, export, YOLO11n e
+ByteTrack concreto com IDs por execução, históricos limitados e trajetórias em
+streaming. Contratos em [tracking.md](tracking.md), evidências nos cartões
+[0](agentic/tasks/wave-0-foundation.md), [1](agentic/tasks/wave-1-video-cli.md),
+[2](agentic/tasks/wave-2-detection.md) e [3](agentic/tasks/wave-3-tracking.md).
+CI remota não foi verificada; datasets reais ainda precisam de aquisição/auditoria.
+Próxima: [Onda 4](agentic/tasks/wave-4-counting.md). Não antecipar outras ondas.
