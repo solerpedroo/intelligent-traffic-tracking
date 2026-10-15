@@ -1,6 +1,6 @@
 # Intelligent Traffic Tracking — Plano de implementação
 
-Versão: 1.0 · Data: 2026-10-15 · Estado: ondas 0–1 implementadas e validadas localmente; ondas 2–12 planejadas.
+Versão: 1.0 · Data: 2026-10-15 · Estado: ondas 0–2 implementadas e validadas localmente; ondas 3–12 planejadas.
 Fonte de requisitos: [project-scope.md](project-scope.md).
 Interpretação e adaptações: [scope-analysis.md](scope-analysis.md).
 
@@ -484,9 +484,9 @@ datasets/GT e eventuais provedores de hospedagem. Registrar ADR ao resolver.
 
 ## 10. Estado atual e próximo passo
 
-Ondas 0–1 implementadas: fundação, CLI de vídeo, probe/decode/preview/export,
-PTS/VFR, limites e plano de dados. Evidências e limitações estão nos cartões
-[0](agentic/tasks/wave-0-foundation.md) e [1](agentic/tasks/wave-1-video-cli.md).
-A execução remota da CI não foi verificada. Dados reais ainda precisam de aquisição
-e auditoria. Próxima tarefa: [Onda 2](agentic/tasks/wave-2-detection.md).
+Ondas 0–2 implementadas: fundação, CLI de vídeo, PTS/VFR, export e YOLO11n
+com checkpoint verificado, boxes originais, manifest e timings. Evidências nos
+cartões [0](agentic/tasks/wave-0-foundation.md), [1](agentic/tasks/wave-1-video-cli.md)
+e [2](agentic/tasks/wave-2-detection.md). CI remota não foi verificada; datasets
+reais ainda precisam de aquisição/auditoria. Próxima: [Onda 3](agentic/tasks/wave-3-tracking.md).
 Não carregar modelos nem antecipar features de outras ondas ao retomar o trabalho.
