@@ -1,6 +1,6 @@
 """Public internal data contracts, independent of transport and model libraries."""
 
-from vision.contracts.config import ProcessingConfig
+from vision.contracts.config import ProcessingConfig, TrackerConfig
 from vision.contracts.observations import (
     CrossingEvent,
     Detection,
@@ -9,7 +9,13 @@ from vision.contracts.observations import (
     TrackObservation,
     ZoneEvent,
 )
-from vision.contracts.run import ModelReference, RunManifest, RunProgress, SoftwareVersion
+from vision.contracts.run import (
+    ModelReference,
+    RunManifest,
+    RunProgress,
+    SoftwareVersion,
+    TrackerReference,
+)
 
 __all__ = [
     "CrossingEvent",
@@ -22,5 +28,7 @@ __all__ = [
     "SoftwareVersion",
     "Track",
     "TrackObservation",
+    "TrackerConfig",
+    "TrackerReference",
     "ZoneEvent",
 ]
