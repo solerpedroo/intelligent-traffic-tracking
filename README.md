@@ -3,7 +3,7 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–5 implemented: foundation, video CLI, YOLO, ByteTrack, line counting, ROI analytics, and observation heatmaps.
+**Status:** Waves 0–6 implemented: foundation, video CLI, YOLO, ByteTrack, line counting, ROI analytics, observation heatmaps, and reproducible exports.
 
 The foundation includes an independent Python package, validated data contracts,
 a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
@@ -258,3 +258,19 @@ are bounded; trajectories remain streamed to disk.
 See [ROI/heatmap configuration, units, and limits](docs/zones-heatmaps.md).
 Visits are not unique physical vehicles; observation heatmaps are not physical
 density or unique passages. Missing observations do not extend measured dwell.
+
+## Reproducible exports (Wave 6)
+
+```bash
+.venv/bin/traffic-video process input.mp4 --output-dir artifacts/numeric \
+  --no-annotated-video
+```
+
+Successful runs publish `config.json`, `manifest.json`, and `summary.json` with
+schema `1.0`, plus the CSV tables that apply to the selected stages. Column order
+and units live in `vision/pipeline/schemas.py`. `--no-annotated-video` skips the
+MP4 and records `annotated_video_skipped`; counts, visits, and heatmap arrays
+remain valid. An encoder or overlay failure does not delete those numeric files.
+A decode, model, or table-write failure publishes `failure.json` instead of a
+successful summary. Reload the resolved config with the JSON stored in
+`config.json`. See [examples/sample_results/README.md](examples/sample_results/README.md).
