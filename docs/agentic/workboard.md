@@ -1,11 +1,11 @@
 # Workboard
 
-Estado inicial em 2026-10-15: Ondas 0–1 concluídas e validadas localmente; ondas 2–12 propostas.
+Estado inicial em 2026-10-15: Ondas 0–2 concluídas e validadas localmente; ondas 3–12 propostas.
 Fonte única de progresso por onda. Evidências ficam nos cartões.
 
 ## Próxima tarefa
 
-Onda 2 — detector YOLO e baseline. Evidências das ondas 0–1 nos cartões;
+Onda 3 — ByteTrack e trajetórias. Evidências das ondas 0–2 nos cartões;
 CI remota não executada nesta sessão. Aquisição/auditoria dos dados reais
 ainda pendentes conforme docs/datasets.md.
 
@@ -13,7 +13,7 @@ ainda pendentes conforme docs/datasets.md.
 
 - **0 — Fundação executável e contratos:** `done`; responsável Codex; [cartão](tasks/wave-0-foundation.md).
 - **1 — Vídeo, timestamps, CLI e dados:** `done`; responsável Codex; [cartão](tasks/wave-1-video-cli.md).
-- **2 — Detector YOLO e baseline:** `proposed`; responsável não atribuído; [cartão](tasks/wave-2-detection.md).
+- **2 — Detector YOLO e baseline:** `done`; responsável Codex; [cartão](tasks/wave-2-detection.md).
 - **3 — ByteTrack e trajetórias:** `proposed`; responsável não atribuído; [cartão](tasks/wave-3-tracking.md).
 - **4 — Linhas, direção e contagem:** `proposed`; responsável não atribuído; [cartão](tasks/wave-4-counting.md).
 - **5 — ROI, permanência e heatmaps:** `proposed`; responsável não atribuído; [cartão](tasks/wave-5-zones-heatmaps.md).
