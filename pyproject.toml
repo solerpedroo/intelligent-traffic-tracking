@@ -13,11 +13,18 @@ dependencies = [
     "pydantic>=2.12,<3",
 ]
 
+[project.scripts]
+traffic-video = "vision.pipeline.cli:main"
+
 [project.optional-dependencies]
 api = [
     "fastapi>=0.115,<1",
     "pydantic-settings>=2.6,<3",
     "uvicorn>=0.34,<1",
+]
+video = [
+    "av>=16,<19",
+    "opencv-python-headless>=4.12,<5",
 ]
 
 [dependency-groups]
