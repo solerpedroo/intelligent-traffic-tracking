@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from vision.contracts import ProcessingConfig
 from vision.contracts.config import DetectorConfig, TrackerConfig
+from vision.contracts.counting import CountingConfig
 from vision.contracts.errors import VisionError
 
 
@@ -32,6 +33,9 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--tracker", help="Catalog tracker preset ID")
             command.add_argument(
                 "--tracker-config", type=Path, help="JSON override of TrackerConfig"
+            )
+            command.add_argument(
+                "--counting-config", type=Path, help="CountingConfig JSON with normalized lines"
             )
             command.add_argument("--confidence", type=float)
             command.add_argument("--iou", type=float)
@@ -134,6 +138,9 @@ def main(argv: list[str] | None = None) -> int:
                     tracker_config_id=args.tracker,
                     tracker=tracker_config,
                     detector=DetectorConfig(**options),
+                    counting=CountingConfig.model_validate_json(args.counting_config.read_text())
+                    if args.counting_config
+                    else CountingConfig(),
                 )
                 result = process_video(
                     args.input,
