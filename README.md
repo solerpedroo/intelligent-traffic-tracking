@@ -3,7 +3,7 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–4 implemented: foundation, video CLI, YOLO, ByteTrack, and auditable line counting.
+**Status:** Waves 0–5 implemented: foundation, video CLI, YOLO, ByteTrack, line counting, ROI analytics, and observation heatmaps.
 
 The foundation includes an independent Python package, validated data contracts,
 a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
@@ -11,7 +11,8 @@ The video extra adds PyAV/FFmpeg decoding and H.264 export, OpenCV preview,
 metadata, original frame timestamps, and temporal selection. The detector extra
 adds YOLO11n and ByteTrack with CPU inference, IDs, trajectories, and annotated
 exports. Finite line counting adds directional events and media-time aggregates.
-SQLite jobs and zone analytics arrive in later waves. No HTTP upload,
+ROI visits and observed dwell stream to CSV; class/window heatmaps export raw
+counts and smoothed previews. SQLite jobs and web analytics arrive in later waves. No HTTP upload,
 worker, or database is implemented yet.
 
 ## Requirements
@@ -194,7 +195,7 @@ Planning documentation is in Portuguese. Code, API, CLI, and UI use English.
 
 ## Next implementation step
 
-Continue with [Wave 5 — Zones, dwell time, and heatmaps](docs/agentic/tasks/wave-5-zones-heatmaps.md).
+Continue with [Wave 6 — Exports and core integrity](docs/agentic/tasks/wave-6-exports.md).
 The delivery order is Python core, scientific evaluation, then web.
 
 
@@ -234,4 +235,26 @@ per run/line/ID/direction and export to crossing_events.csv; media-time windows
 to crossing_windows.csv. The video displays oriented lines and directional totals.
 See [counting contracts and explicit example preparation](docs/counting.md).
 The small real traffic check is a development sanity check with visual labels,
-not an independent benchmark. ROI and heatmaps begin in Wave 5.
+not an independent benchmark. ROI and heatmaps are implemented in Wave 5.
+
+
+## ROI and observation heatmaps (Wave 5)
+
+```bash
+.venv/bin/traffic-video process input.mp4 --model yolo11n-coco \
+  --checkpoint checkpoints/yolo11n.pt --tracker bytetrack-default \
+  --analytics-config examples/analytics/zones.json --output-dir artifacts/analytics-run
+.venv/bin/python scripts/smoke_analytics.py --source data/vehicles.mp4 \
+  --checkpoint checkpoints/yolo11n.pt --output-dir artifacts/analytics-smoke
+```
+
+Normalized simple polygons include their boundaries. Occupancy counts observed
+IDs; visits distinguish geometric exit, observation loss, and censored boundaries.
+Dwell sums only consecutive inside observations in original media time. CSV exports
+include zone_events, zone_visits, zone_occupancy, and a heatmap_index referencing
+raw/smoothed NPZ arrays and PNG previews per class/window. State and current grids
+are bounded; trajectories remain streamed to disk.
+
+See [ROI/heatmap configuration, units, and limits](docs/zones-heatmaps.md).
+Visits are not unique physical vehicles; observation heatmaps are not physical
+density or unique passages. Missing observations do not extend measured dwell.
