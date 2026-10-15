@@ -1,13 +1,13 @@
 # Workboard
 
-Estado inicial em 2026-10-15: Ondas 0–3 concluídas e validadas localmente; ondas 4–12 propostas.
+Estado inicial em 2026-10-15: Ondas 0–4 concluídas e validadas localmente; ondas 5–12 propostas.
 Fonte única de progresso por onda. Evidências ficam nos cartões.
 
 ## Próxima tarefa
 
-Onda 4 — Linhas, direção e contagem. Evidências das ondas 0–3 nos cartões;
-CI remota não executada nesta sessão. Aquisição/auditoria dos dados reais
-ainda pendentes conforme docs/datasets.md.
+Onda 5 — ROI, permanência e heatmaps. Evidências das ondas 0–4 nos cartões;
+CI remota não executada nesta sessão. Piloto local de crossing validado;
+dados/GT/splits para avaliação científica permanecem pendentes conforme docs/datasets.md.
 
 ## Ondas
 
@@ -15,7 +15,7 @@ ainda pendentes conforme docs/datasets.md.
 - **1 — Vídeo, timestamps, CLI e dados:** `done`; responsável Codex; [cartão](tasks/wave-1-video-cli.md).
 - **2 — Detector YOLO e baseline:** `done`; responsável Codex; [cartão](tasks/wave-2-detection.md).
 - **3 — ByteTrack e trajetórias:** `done`; responsável Codex; [cartão](tasks/wave-3-tracking.md).
-- **4 — Linhas, direção e contagem:** `proposed`; responsável não atribuído; [cartão](tasks/wave-4-counting.md).
+- **4 — Linhas, direção e contagem:** `done`; responsável Codex; [cartão](tasks/wave-4-counting.md).
 - **5 — ROI, permanência e heatmaps:** `proposed`; responsável não atribuído; [cartão](tasks/wave-5-zones-heatmaps.md).
 - **6 — Exports e integridade do núcleo:** `proposed`; responsável não atribuído; [cartão](tasks/wave-6-exports.md).
 - **7 — Avaliação e benchmark:** `proposed`; responsável não atribuído; [cartão](tasks/wave-7-evaluation.md).
