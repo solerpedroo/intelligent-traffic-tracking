@@ -26,6 +26,20 @@ video = [
     "av>=16,<19",
     "opencv-python-headless>=4.12,<5",
 ]
+detector = [
+    "ultralytics-opencv-headless==8.4.177",
+    "torch==2.14.1",
+    "torchvision==0.29.1",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
 
 [dependency-groups]
 dev = [
@@ -49,5 +63,6 @@ select = ["E", "F", "I", "B", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["vision/tests", "backend/tests"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -m 'not detector'"
+markers = ["detector: real YOLO integration requiring explicit local checkpoint and example image"]
 filterwarnings = ["error"]
