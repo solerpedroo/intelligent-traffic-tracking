@@ -204,7 +204,7 @@ def test_catalog_contains_verified_definition_without_claiming_local_availabilit
     catalog = load_catalog()
     assert catalog.get_model("yolo11n-coco").filename == "yolo11n.pt"
     assert len(catalog.models[0].classes) == 80
-    assert catalog.tracker_configs == ()
+    assert catalog.get_tracker("bytetrack-default").buffer_unit == "processed_frames"
 
 
 def test_core_imports_do_not_load_transport_or_model_libraries():
