@@ -23,6 +23,7 @@ class FramePacket:
     timestamp_s: float
     pixels: NDArray[np.uint8] = field(repr=False)
     timestamp_source: Literal["pts", "fps_fallback"] = "pts"
+    duration_s: float | None = None
 
     def __post_init__(self) -> None:
         if type(self.frame_index) is not int or self.frame_index < 0:
@@ -36,6 +37,13 @@ class FramePacket:
             raise ValueError("timestamp_s must be finite and non-negative")
         if self.timestamp_source not in ("pts", "fps_fallback"):
             raise ValueError("timestamp_source must be pts or fps_fallback")
+        if self.duration_s is not None and (
+            isinstance(self.duration_s, bool)
+            or not isinstance(self.duration_s, (int, float))
+            or not isfinite(self.duration_s)
+            or self.duration_s <= 0
+        ):
+            raise ValueError("duration_s must be positive and finite when available")
         if not isinstance(self.pixels, np.ndarray) or self.pixels.dtype != np.uint8:
             raise ValueError("pixels must be a uint8 NumPy array")
         if self.pixels.ndim != 3 or self.pixels.shape[2] != 3 or 0 in self.pixels.shape:
