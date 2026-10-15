@@ -200,9 +200,10 @@ def test_progress_distinguishes_unknown_totals_and_failure():
     assert RunProgress(state="failed", error="decode failed").error == "decode failed"
 
 
-def test_packaged_catalog_is_empty_and_does_not_claim_available_models():
+def test_catalog_contains_verified_definition_without_claiming_local_availability():
     catalog = load_catalog()
-    assert catalog.models == ()
+    assert catalog.get_model("yolo11n-coco").filename == "yolo11n.pt"
+    assert len(catalog.models[0].classes) == 80
     assert catalog.tracker_configs == ()
 
 
@@ -211,7 +212,7 @@ def test_core_imports_do_not_load_transport_or_model_libraries():
 import sys
 from vision.contracts import Detection, FramePacket, RunManifest
 from vision.configs import load_catalog
-assert load_catalog().models == ()
+assert load_catalog().get_model("yolo11n-coco").filename == "yolo11n.pt"
 for name in ('fastapi', 'backend', 'torch', 'ultralytics', 'cv2'):
     assert name not in sys.modules, name
 """
