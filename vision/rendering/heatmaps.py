@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 
 from vision.contracts.errors import VisionError
+from vision.pipeline.schemas import HEATMAP_INDEX_COLUMNS
 
 
 def smooth_counts(raw, sigma_cells):
@@ -35,24 +36,12 @@ def heatmap_preview(smoothed):
 
 
 class HeatmapWriter:
-    fields = (
-        "run_id",
-        "video_id",
-        "window_start_s",
-        "window_end_s",
-        "class_id",
-        "grid_width",
-        "grid_height",
-        "observations",
-        "unit",
-        "sigma_cells",
-        "array_file",
-        "preview_file",
-    )
+    fields = HEATMAP_INDEX_COLUMNS
 
     def __init__(self, directory, rows, config, run_id, video_id):
         self.directory, self.rows, self.config = directory, rows, config
         self.run_id, self.video_id = run_id, video_id
+        self.warnings = []
         directory.mkdir(exist_ok=False)
 
     def __call__(self, bucket, grids):
@@ -61,11 +50,22 @@ class HeatmapWriter:
             smoothed = smooth_counts(raw, self.config.sigma_cells)
             with (self.directory / f"{stem}.npz").open("xb") as file:
                 np.savez_compressed(file, raw=raw, smoothed=smoothed)
-            ok, encoded = cv2.imencode(".png", heatmap_preview(smoothed))
-            if not ok:
-                raise VisionError("heatmap_export", "Could not encode heatmap preview")
-            with (self.directory / f"{stem}.png").open("xb") as file:
-                file.write(encoded.tobytes())
+            preview_file = ""
+            try:
+                ok, encoded = cv2.imencode(".png", heatmap_preview(smoothed))
+                if not ok:
+                    raise VisionError("heatmap_export", "Could not encode heatmap preview")
+                with (self.directory / f"{stem}.png").open("xb") as file:
+                    file.write(encoded.tobytes())
+                preview_file = f"heatmaps/{stem}.png"
+            except (VisionError, cv2.error, OSError) as error:
+                self.warnings.append(
+                    {
+                        "code": "heatmap_preview_failed",
+                        "artifact": f"heatmaps/{stem}.png",
+                        "message": str(error),
+                    }
+                )
             interval = Decimal(str(self.config.window_s))
             self.rows.writerow(
                 [
@@ -80,6 +80,6 @@ class HeatmapWriter:
                     "observations_per_grid_cell",
                     self.config.sigma_cells,
                     f"heatmaps/{stem}.npz",
-                    f"heatmaps/{stem}.png",
+                    preview_file,
                 ]
             )
