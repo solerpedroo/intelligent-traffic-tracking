@@ -60,8 +60,8 @@ referenciar a anterior sem apagar seu histórico.
   aquisição/auditoria e congelamento dos splits reais seguem pendentes antes da avaliação.
 - Ondas 2–5: resolvidas por ADR-009 a ADR-012.
 - Onda 6: resolvida por ADR-013.
-- Onda 7: formatos GT, tolerâncias de pareamento e agregações científicas.
-  Splits reais continuam não auditados, conforme ADR-008.
+- Onda 7: protocolo e conversores resolvidos por ADR-014. O baseline real
+  continua bloqueado: splits não auditados, conforme ADR-008.
 - Onda 9: migrações, retenção/cotas, heartbeat, recuperação e contrato HTTP final.
 - Onda 12: LICENSE e eventual plano de hospedagem, após verificar termos reais.
 
@@ -308,3 +308,22 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
 - Consequência: ausência de vídeo anotado não é execução incompleta do núcleo.
   MOT segue `not_evaluated_no_ground_truth` sem GT. Avaliação real permanece
   na Onda 7.
+
+## ADR-014 — Protocolo de avaliação e TrackEval (Onda 7)
+
+- Data: 2026-10-15. Estado: aceito para implementação; baseline real bloqueado.
+- Decisão: congelar IoU 0,50:0,95, AP de 101 pontos, tolerância de evento de
+  0,5 s e IoU de associação 0,5 em `experiments/configs/evaluation-protocol.json`
+  antes de medir sequências externas. O registro de splits permanece
+  descongelado até haver hash e auditoria.
+- Detecção, contagem e desempenho são calculados no núcleo. MOT só chama
+  TrackEval 1.3.0, por classe, gravando essa classe como id 1 do MOTChallenge
+  e com `DO_PREPROC` desligado. Sem `track_id` na referência, o resultado é
+  `not_evaluated`, nunca HOTA zero.
+- A dependência publicada do TrackEval pede `opencv-python` 5, que substitui o
+  `cv2` headless 4.14 do extra `video`. O metadado resolvido pelo uv fica
+  restrito a NumPy, SciPy e tabulate. O extra `evaluation` declara de novo o
+  OpenCV headless já usado pelo vídeo.
+- Consequência: a CLI recusa `frozen_test_benchmark` enquanto o teste não
+  estiver congelado. Fixtures sintéticas validam indexação e erros conhecidos,
+  mas não fecham o gate científico. A Onda 8 espera esse baseline.
