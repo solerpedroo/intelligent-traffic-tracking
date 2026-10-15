@@ -1,16 +1,16 @@
 # Workboard
 
-Estado inicial em 2026-10-15: documentação preparada; implementação não iniciada.
+Estado inicial em 2026-10-15: Onda 0 concluída e validada localmente; próximas ondas propostas.
 Fonte única de progresso por onda. Evidências ficam nos cartões.
 
 ## Próxima tarefa
 
-Onda 0. Antes de código, preencher responsável, conferir dependências e mudar
-o cartão para `claimed`. Não há tarefa em execução nesta preparação.
+Onda 1 — vídeo, timestamps, CLI e plano de dados. Onda 0 fechada com evidências
+no cartão; workflow remoto e inspeção visual não executados nesta sessão.
 
 ## Ondas
 
-- **0 — Fundação executável e contratos:** `proposed`; responsável não atribuído; [cartão](tasks/wave-0-foundation.md).
+- **0 — Fundação executável e contratos:** `done`; responsável Codex; [cartão](tasks/wave-0-foundation.md).
 - **1 — Vídeo, timestamps, CLI e dados:** `proposed`; responsável não atribuído; [cartão](tasks/wave-1-video-cli.md).
 - **2 — Detector YOLO e baseline:** `proposed`; responsável não atribuído; [cartão](tasks/wave-2-detection.md).
 - **3 — ByteTrack e trajetórias:** `proposed`; responsável não atribuído; [cartão](tasks/wave-3-tracking.md).
