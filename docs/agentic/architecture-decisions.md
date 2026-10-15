@@ -243,3 +243,45 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
   derivação e anotações visuais de desenvolvimento documentadas. Não declarar
   GT independente, teste congelado ou benchmark de acurácia. Ver [dados](../datasets.md)
   e [contrato operacional](../counting.md). Sem dependências novas.
+
+## ADR-012 — ROI observada, censura de visitas e heatmaps limitados
+
+- Data: 2026-10-15. Estado: aceito e implementado na Onda 5.
+- ZoneConfig persiste polígonos simples normalizados com 3–64 vértices, até 16
+  zonas. Rejeitar repetição de vértice inicial, área quase nula, cruzamentos,
+  auto-toques e arestas que retrocedem. Aceitar concavidade, orientação inversa e
+  vértices colineares sem retrocesso. Sem buracos. Borda/vértices são interiores.
+- Usar centro inferior da detecção associada, como nas linhas. Ocupação é número
+  de IDs observados por frame/zona/classe, não quantidade física de veículos.
+  Zonas sobrepostas contam independentemente. CSV inclui zeros e PTS originais.
+- Abrir visita por transição observada de fora para dentro. Primeira observação
+  já dentro é censurada à esquerda, sem inventar entrada: selection_start,
+  first_observation_inside ou after_observation_loss. Um ID pode ter várias visitas.
+- Dwell aproximado soma somente dt entre frames consecutivos com ponto dentro
+  da mesma ROI e dt<=max_gap_s (padrão 0.5 s, tolerância de arredondamento 1 ns).
+  Não somar intervalos outside→inside/inside→outside, duração de exposição do
+  último frame, tempo até o fim do recorte ou períodos sem observação.
+- Lost/predicted, remoção do ID, ponto fora da imagem e lacuna temporal excessiva
+  encerram visitas como observation_lost com censura à direita; evento informa
+  motivo específico. Recuperação abre novo trecho censurado. Saída geométrica
+  exige observação válida fora da ROI; fim da seleção é selection_end censurado.
+- Reset por execução; estado apenas para IDs vivos/perdidos, limitado pelo mesmo
+  max_live_tracks do tracker. Visitas encerradas/eventos/ocupação são persistidos
+  incrementalmente, sem manter histórico completo de visitas em RAM.
+- Heatmap global da imagem, independente das ROIs: uma contribuição por ID
+  observado/frame, inclusive baixa confiança. Classe estabilizada pelo tracker;
+  filtro explícito de classes ou classes do detector. Máximo 16 classes e grade
+  256×256 uint64, só uma janela em RAM (até 8 MiB de grades brutas).
+- Janelas de mídia [k*window_s,(k+1)*window_s), origem original, aritmética decimal.
+  Exportar somente janelas com frames processados; classes sem observações nessa
+  janela têm grade zero. Saltos sem frames não geram informação presumida.
+- NPZ guarda raw e smoothed; suavização gaussiana em células, sigma padrão 1,
+  raio ceil(3*sigma), zero padding com renormalização global para conservar massa.
+  Sigma zero desativa. PNG Inferno normalizado pelo pico de cada mapa, zero preto;
+  cores entre arquivos não representam a mesma quantidade absoluta.
+- Unidade: observações/célula. Sem peso por dt ou normalização por área física;
+  FPS, duração da janela e permanência influenciam o resultado. Não chamar isso
+  de passagens únicas, densidade física, velocidade ou congestionamento.
+- Preview com falha mantém NPZ numérico em heatmaps.partial e sinaliza erro.
+  Integridade/publicação numérica independente da renderização será consolidada
+  na Onda 6. Contratos operacionais: [zones-heatmaps.md](../zones-heatmaps.md).
