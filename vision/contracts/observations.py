@@ -97,6 +97,32 @@ class CrossingEvent(Contract):
     line_id: Identifier
     direction: Literal["A_TO_B", "B_TO_A"]
     event_type: Literal["line_crossing"] = "line_crossing"
+    evidence_start_frame: NonNegativeInt | None = None
+    evidence_start_s: Seconds | None = None
+    intersection_xy: tuple[float, float] | None = None
+    observed_count: NonNegativeInt | None = None
+
+    @model_validator(mode="after")
+    def validate_evidence(self) -> Self:
+        fields = (
+            self.evidence_start_frame,
+            self.evidence_start_s,
+            self.intersection_xy,
+            self.observed_count,
+        )
+        if all(item is None for item in fields):
+            return self  # Preserve the minimal event contract from Wave 0.
+        if any(item is None for item in fields):
+            raise ValueError("Crossing evidence must be complete when supplied")
+        if (
+            self.evidence_start_frame >= self.frame_index
+            or self.evidence_start_s >= self.timestamp_s
+            or self.observed_count < 2
+        ):
+            raise ValueError(
+                "Crossing evidence must precede confirmation and have >=2 observations"
+            )
+        return self
 
 
 class ZoneEvent(Contract):
