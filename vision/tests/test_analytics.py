@@ -484,11 +484,15 @@ def test_collinear_forward_vertices_are_valid_without_self_touching():
 def test_failed_heatmap_preview_preserves_raw_numeric_evidence(tmp_path, monkeypatch):
     import cv2
 
+    captured = io.StringIO()
     monkeypatch.setattr(cv2, "imencode", lambda *args: (False, None))
     writer = HeatmapWriter(
-        tmp_path / "maps.partial", csv.writer(io.StringIO()), HeatmapConfig(), "r", "v"
+        tmp_path / "maps.partial", csv.writer(captured), HeatmapConfig(), "r", "v"
     )
-    with pytest.raises(VisionError, match="preview"):
-        writer(0, {2: np.ones((8, 8), dtype=np.uint64)})
+    writer(0, {2: np.ones((8, 8), dtype=np.uint64)})
+    assert writer.warnings[0]["code"] == "heatmap_preview_failed"
+    assert not list((tmp_path / "maps.partial").glob("*.png"))
+    row = next(csv.reader(io.StringIO(captured.getvalue())))
+    assert row[-2].endswith(".npz") and row[-1] == ""
     with np.load(tmp_path / "maps.partial/window-00000000-class-2.npz", allow_pickle=False) as data:
         assert data["raw"].sum() == 64
