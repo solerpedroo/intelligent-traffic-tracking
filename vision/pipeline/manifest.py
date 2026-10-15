@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
-from vision.contracts.run import RunManifest, SoftwareVersion
+from vision.contracts.run import RunManifest, SoftwareVersion, TrackerReference
 
 
 def make_manifest(run_id, video_id, input_sha256, config, reference, device, class_mapping):
@@ -30,6 +30,7 @@ def make_manifest(run_id, video_id, input_sha256, config, reference, device, cla
         "opencv-python-headless",
         "torch",
         "torchvision",
+        "lap",
         "ultralytics-opencv-headless",
     ):
         try:
@@ -61,5 +62,8 @@ def make_manifest(run_id, video_id, input_sha256, config, reference, device, cla
         ),
         software=tuple(software),
         detector=reference,
+        tracker=TrackerReference(tracker_config_id=config.tracker_config_id)
+        if config.tracker_config_id
+        else None,
         class_mapping=class_mapping,
     )
