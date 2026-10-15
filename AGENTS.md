@@ -2,7 +2,7 @@
 
 ## Estado e início de sessão
 
-Projeto em planejamento. Nenhuma onda de software concluída. Consulte o estado
+Fundação da Onda 0 concluída e validada localmente. Próxima: Onda 1. Consulte o estado
 atual em [docs/agentic/workboard.md](docs/agentic/workboard.md).
 
 1. Leia [o escopo](docs/project-scope.md), [a análise](docs/scope-analysis.md)
@@ -61,12 +61,15 @@ substitui documentação ou que trabalho não commitado não existe.
 
 ## Validação e encerramento
 
-Ainda não há comandos de software executáveis. A Onda 0 os estabelecerá e os
-registrará no README e no cartão; não alegar testes existentes nesta fase.
-Depois disso, execute os checks exigidos pelo cartão e pela área alterada.
+Comandos verificados estão no README. Preparar com `uv sync --locked --extra api`.
+Python: `.venv/bin/ruff check vision backend`, `.venv/bin/ruff format --check
+vision backend` e `.venv/bin/pytest`. Frontend: em `frontend/`, `npm ci`,
+`npm run lint`, `npm run typecheck`, `npm run test` e `npm run build`.
+`typecheck` gera tipos Next.js antes do tsc. Biome cuida do lint/formatação web.
+Execute os checks exigidos pelo cartão e pela área alterada.
 Testes pulados precisam de motivo; mocks não substituem integração real.
 Feche uma onda apenas com critérios e evidências completos.
 
 Não iniciar fine-tuning, outro tracker, RTSP, múltiplas câmeras, identificação
 pessoal ou deploy em nuvem como consequência implícita de uma tarefa do MVP.
-Próxima tarefa: [wave-0-foundation](docs/agentic/tasks/wave-0-foundation.md).
+Próxima tarefa: [wave-1-video-cli](docs/agentic/tasks/wave-1-video-cli.md).
