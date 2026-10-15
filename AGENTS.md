@@ -2,7 +2,7 @@
 
 ## Estado e início de sessão
 
-Ondas 0–3 concluídas e validadas localmente. Próxima: Onda 4. Consulte o estado
+Ondas 0–4 concluídas e validadas localmente. Próxima: Onda 5. Consulte o estado
 atual em [docs/agentic/workboard.md](docs/agentic/workboard.md).
 
 1. Leia [o escopo](docs/project-scope.md), [a análise](docs/scope-analysis.md)
@@ -81,4 +81,5 @@ CLI `models` e `prepare-model` gerenciam definições/pesos; `process --model`
 usa checkpoint local verificado. Confidence de desenho não remove detecções do CSV.
 Tracking: `process --tracker bytetrack-default`, com overrides por
 `--tracker-config params.json`. Ver docs/tracking.md para buffer, estados e classe.
-Próxima tarefa: [wave-4-counting](docs/agentic/tasks/wave-4-counting.md).
+Contagem: `--counting-config lines.json`, com contratos em docs/counting.md.
+Próxima tarefa: [wave-5-zones-heatmaps](docs/agentic/tasks/wave-5-zones-heatmaps.md).
