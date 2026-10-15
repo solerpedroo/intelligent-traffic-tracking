@@ -3,7 +3,7 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–6 implemented: foundation, video CLI, YOLO, ByteTrack, line counting, ROI analytics, observation heatmaps, and reproducible exports.
+**Status:** Waves 0–6 implemented. Wave 7 evaluation tools are in place; the real benchmark is blocked until test splits are frozen.
 
 The foundation includes an independent Python package, validated data contracts,
 a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
@@ -274,3 +274,16 @@ remain valid. An encoder or overlay failure does not delete those numeric files.
 A decode, model, or table-write failure publishes `failure.json` instead of a
 successful summary. Reload the resolved config with the JSON stored in
 `config.json`. See [examples/sample_results/README.md](examples/sample_results/README.md).
+
+## Evaluation (Wave 7)
+
+```bash
+uv sync --locked --extra api --extra video --extra evaluation
+.venv/bin/python scripts/evaluate.py --help
+```
+
+Detection mAP, crossing events, and timing summaries are separate from HOTA/IDF1/MOTA.
+TrackEval runs only when identity ground truth and the `evaluation` extra are present.
+The committed split file is not frozen, so the command exits 2 unless
+`--allow-development` is set, and that report is not a benchmark.
+See [evaluation](docs/evaluation.md) and [methodology](docs/methodology.md).
