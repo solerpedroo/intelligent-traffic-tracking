@@ -1,6 +1,6 @@
 # Arquitetura — fundação executável
 
-Estado: ondas 0–4. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
+Estado: ondas 0–5. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
 ADR-007 para vídeo e timestamps.
 Escopo futuro: [plano de implementação](implementation-plan.md).
 
@@ -202,5 +202,21 @@ mantém totais por linha/classe/sentido. Configuração resolvida integra o mani
 
 `process --counting-config` ativa a contagem após ByteTrack e antes do overlay.
 CSV, vídeo e metadata compartilham o mesmo run_id. [counting.md](counting.md)
-descreve coordenadas, confirmação, limites, exemplos e evidências. Ainda não há
-ROI, permanência, heatmaps, editor web ou reidentificação de veículos.
+descreve coordenadas, confirmação, limites, exemplos e evidências. A Onda 4 não inclui
+ROI, permanência ou heatmaps (entregues na Onda 5); editor web e reidentificação
+não fazem parte dessa entrega.
+
+
+## ROI e heatmaps da Onda 5
+
+`vision/geometry/polygons.py` valida polígonos simples e inclui bordas.
+`ZoneAnalytics` mantém visitas observadas com censura e publica eventos,
+ocupação e visitas em streaming. `HeatmapAccumulator` retém só a janela atual;
+`HeatmapWriter` exporta raw/smoothed NPZ e PNG com parâmetros no índice.
+Ambos usam os centros inferiores das tracks observadas e PTS originais.
+
+`--analytics-config` integra contratos no CLI/manifest e pode coexistir com linhas.
+Overlay de ROI mostra ocupação atual; visitas não são objetos físicos únicos.
+[Contratos e limites](zones-heatmaps.md) descrevem tempos, perdas, unidades e
+reprodução. O núcleo usa só NumPy/Pydantic; smoothing e previews usam o extra
+video. Consolidação de artefatos e falhas de render será a Onda 6.
