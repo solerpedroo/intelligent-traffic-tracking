@@ -56,7 +56,8 @@ referenciar a anterior sem apagar seu histórico.
 ## Decisões pendentes
 
 - Onda 0: resolvido por ADR-006; versões exatas nos lockfiles.
-- Onda 1: decode/PTS/VFR, codecs, limites de entrada, dados e splits.
+- Onda 1: implementação técnica resolvida por ADR-007 e plano de dados por ADR-008;
+  aquisição/auditoria e congelamento dos splits reais seguem pendentes antes da avaliação.
 - Ondas 2–3: checkpoint, ByteTrack concreto, thresholds e classe da track.
 - Ondas 4–5: tamanho mínimo, banda, lacuna máxima e regras temporais de dwell.
 - Onda 7: formatos GT, tolerâncias de pareamento e agregações científicas.
@@ -92,3 +93,46 @@ nem se ignora esse advisory. O contrato de checks (lint, tipos, testes e build)
 permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-started/installation),
 [uv](https://docs.astral.sh/uv/concepts/projects/sync/),
 [Biome](https://biomejs.dev/installation/quick-start/).
+
+## ADR-007 — Entrada de vídeo e tempo da mídia (Onda 1)
+
+- Data: 2026-10-15. Estado: aceito para implementação.
+- Decisão: extra `video` instala PyAV (FFmpeg) para probe/decode/encode e
+  OpenCV headless para preview PNG. Não exigir executáveis ffmpeg/ffprobe do
+  sistema; registrar bibliotecas efetivamente usadas e encoders disponíveis.
+- Entrada inicial: arquivo local MP4/ISO-BMFF, exatamente um stream de vídeo,
+  codec permitido, pixels quadrados, sem rotação. Não aceitar URLs, playlists
+  ou sequências de imagens implicitamente. Áudio não é copiado na exportação.
+- Limites padrão configuráveis por JSON: 512 MiB, 300 s, 2.073.600 pixels/frame
+  e 36.000 frames decodificados. Checar headers e durante decode; metadados
+  são declarados, não prova de integridade do arquivo inteiro.
+- Usar PTS×time_base em ordem de apresentação. Tempo zero é o primeiro frame
+  do stream, preservando esse origin no metadata; recorte [start_s,end_s) não
+  renumera frames/timestamps de origem. Rejeitar PTS ausente/não crescente
+  por padrão. Fallback CFR só com FPS explicitamente fornecido pelo usuário,
+  aplicado à sequência inteira e marcado `fps_fallback`; não inferir CFR de
+  um FPS médio em vídeo VFR. Validar VFR com fixtures de PTS conhecidos.
+- Exportação H.264/MP4, sem resize, dimensões pares para yuv420p; timeline
+  exportada inicia no primeiro frame selecionado e preserva intervalos PTS.
+  Duração do último frame usa duração fornecida pelo decoder ou FPS declarado
+  como fallback documentado. Frames CSV preserva o mapeamento temporal.
+- Fechar decoder/encoder/arquivos mesmo em erro/cancelamento. Diretório de saída
+  deve ser novo; arquivos finais só são publicados após sucesso. Resultados
+  incompletos mantêm marcação `.partial` e `failure.json`. Sem sobrescrita.
+- Consequência: bounds, codecs, timestamp policy e ambiente acompanham cada
+  execução; não há detecção, tracking, worker ou endpoints de upload nesta onda.
+- Referências: [PyAV time](https://pyav.org/docs/stable/api/time.html),
+  [exemplo oficial de PTS](https://github.com/PyAV-Org/PyAV/blob/main/examples/numpy/generate_video_with_pts.py).
+
+## ADR-008 — Dados do piloto e separação de cenas
+
+- Data: 2026-10-15. Estado: aceito para planejamento do piloto, sem dados baixados.
+- Decisão: identificar SDD como fonte inicial com termos publicados CC BY-NC-SA 3.0
+  para pesquisa não comercial; slots de cenas nexus/deathCircle/gates no inventário
+  planejado. Validar caminhos e estabilidade de câmera ao obter os arquivos.
+- Consequência: não prometer câmera fixa, cobertura de todas as classes, densidade
+  ou oclusão antes da inspeção. Vídeos da mesma cena ficam no mesmo split.
+  Congelar teste antes de ajuste quantitativo; frames aleatórios não são splits.
+- Fixtures CFR/VFR são próprias e sintéticas, sem valor como benchmark real.
+  GT de crossing começa na Onda 4; conversão/avaliação MOT na 7.
+- Referência: [plano, termos publicados e gates](../datasets.md).
