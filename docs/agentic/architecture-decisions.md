@@ -203,3 +203,43 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
 - Fontes primárias: [implementação fixada](https://github.com/ultralytics/ultralytics/blob/v8.4.177/ultralytics/trackers/byte_tracker.py),
   [gestão dos pools](https://github.com/ultralytics/ultralytics/blob/v8.4.177/ultralytics/trackers/utils/stracks.py),
   [artigo ByteTrack](https://arxiv.org/abs/2110.06864).
+
+## ADR-011 — Crossing finito, confirmação e auditoria
+
+- Data: 2026-10-15. Estado: aceito e implementado na Onda 4.
+- LineConfig persiste endpoints normalizados no plano contínuo [0,width]×[0,height].
+  Converter para pixels originais por execução; clipping somente no desenho.
+  Máximo 16 linhas, IDs únicos, coordenadas finitas, endpoints distintos.
+- Referência: centro inferior da caixa observada. Sinal de `(end-start)×(point-start)`:
+  A negativo, B positivo. Inverter endpoints inverte sentidos. Lost/predicted não
+  geram evidência. Fora da imagem quebra a sequência geométrica.
+- Histerese padrão 3 px por distância perpendicular, borda da banda inclusiva.
+  Estabelecer cada lado com duas observações fora da banda, sem interrupção pela
+  banda/lado contrário. Preservar o lado estável anterior durante a passagem.
+  Exigir três observações válidas da track no momento da confirmação.
+- A evidência de interseção vem dos segmentos entre observações adjacentes
+  aceitas, não da corda entre duas âncoras distantes. Assim, contornar endpoint
+  pela banda não vira crossing. Endpoints são inclusivos, colinearidade excluída;
+  um toque só conta se houver passagem e estabilidade no lado contrário.
+- Controlar os sinais geométricos também dentro da banda; ida/volta dentro dela
+  não pode deixar uma interseção antiga válida para uma passagem pela extensão.
+- Lacunas: diferença máxima inclusiva de 1 frame e 0.5 s por padrão. Exigir ambos,
+  inclusive em VFR. Comparação temporal admite 1 ns para arredondamento float.
+  Lacuna excessiva perde âncora/estabilidade/interseção, mas mantém flags emitidas.
+- Evento no frame/PTS de confirmação, sem estimar instante físico exato. Registrar
+  âncora anterior, interseção em pixels e número de observações. Essas evidências,
+  quando fornecidas, são completas e precedem a confirmação; contrato mínimo da
+  Onda 0 continua legível sem campos opcionais.
+- Deduplicar por run/linha/ID/sentido. Flags de ambos os sentidos vivem no estado
+  da track; expulsá-las quando o adapter remove definitivamente o ID. Isso exige
+  IDs nunca reutilizados na execução, garantidos pelo adapter ByteTrack. Novo ID
+  pode duplicar um veículo físico; não usar isso como reidentificação.
+- CSV de eventos incremental, summary por linha/classe/sentido. Janelas esparsas
+  de mídia `[k*window_s,(k+1)*window_s)` em CSV, ancoradas no zero original e
+  classificadas pelo PTS de confirmação. Aritmética decimal das representações
+  evita classificar 0.3 s em [0.2,0.3) por arredondamento binário. Somente a janela
+  atual fica em RAM; zeros implícitos no CSV, totais de linha/sentido explícitos.
+- Validação real inicial com exemplo público vehicles.mp4 do Supervision,
+  derivação e anotações visuais de desenvolvimento documentadas. Não declarar
+  GT independente, teste congelado ou benchmark de acurácia. Ver [dados](../datasets.md)
+  e [contrato operacional](../counting.md). Sem dependências novas.
