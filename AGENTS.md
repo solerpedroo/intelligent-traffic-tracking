@@ -2,7 +2,7 @@
 
 ## Estado e início de sessão
 
-Ondas 0–4 concluídas e validadas localmente. Próxima: Onda 5. Consulte o estado
+Ondas 0–5 concluídas e validadas localmente. Próxima: Onda 6. Consulte o estado
 atual em [docs/agentic/workboard.md](docs/agentic/workboard.md).
 
 1. Leia [o escopo](docs/project-scope.md), [a análise](docs/scope-analysis.md)
@@ -82,4 +82,6 @@ usa checkpoint local verificado. Confidence de desenho não remove detecções d
 Tracking: `process --tracker bytetrack-default`, com overrides por
 `--tracker-config params.json`. Ver docs/tracking.md para buffer, estados e classe.
 Contagem: `--counting-config lines.json`, com contratos em docs/counting.md.
-Próxima tarefa: [wave-5-zones-heatmaps](docs/agentic/tasks/wave-5-zones-heatmaps.md).
+ROI/heatmaps: `--analytics-config zones.json`; ver docs/zones-heatmaps.md. Dwell
+usa apenas intervalos consecutivos observados; perdas e limites são censurados.
+Próxima tarefa: [wave-6-exports](docs/agentic/tasks/wave-6-exports.md).
