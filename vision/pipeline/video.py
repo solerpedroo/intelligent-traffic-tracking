@@ -61,11 +61,16 @@ def process_video(
     )
     tracker: TrackerAdapter | None = None
     counter = sink = None
+    zones = heatmap = None
     if not config.render_annotated_video:
         raise VideoError("unsupported_config", "This pipeline requires video export")
     model = load_catalog().get_model(config.detector_model_id) if config.detector_model_id else None
     if model is not None:
-        model.resolve_classes(config.detector.classes)
+        selected_classes = model.resolve_classes(config.detector.classes)
+        if config.analytics.heatmap.enabled:
+            from vision.analytics.heatmaps import resolve_heatmap_classes
+
+            resolve_heatmap_classes(config.analytics.heatmap, selected_classes)
         if detector is None and checkpoint is None:
             raise VisionError("missing_checkpoint", "Provide a verified local checkpoint")
     elif detector is not None:
@@ -93,6 +98,7 @@ def process_video(
             "postprocessing_ms",
             "tracking_ms",
             "counting_ms",
+            "analytics_ms",
             "render_ms",
             "encode_submit_ms",
         ),
@@ -173,6 +179,49 @@ def process_video(
                     "frames.csv",
                     ["frame_index", "timestamp_s", "timestamp_source", "export_timestamp_s"],
                 )
+                if config.analytics.zones:
+                    from vision.analytics.zones import ZoneAnalytics
+                    from vision.contracts import ZoneEvent, ZoneVisit
+
+                    zone_event_rows = csv_output("zone_events.csv", tuple(ZoneEvent.model_fields))
+                    zone_visit_rows = csv_output("zone_visits.csv", tuple(ZoneVisit.model_fields))
+                    occupancy_rows = csv_output(
+                        "zone_occupancy.csv", ZoneAnalytics.occupancy_fields
+                    )
+
+                    def emit_visit(visit):
+                        zone_visit_rows.writerow(visit.model_dump().values())
+
+                    zones = ZoneAnalytics(
+                        config.analytics,
+                        metadata.width,
+                        metadata.height,
+                        model.resolve_classes(config.detector.classes),
+                        manifest.run_id,
+                        config.video_id,
+                        emit_visit,
+                        config.tracker.max_live_tracks,
+                    )
+                if config.analytics.heatmap.enabled:
+                    from vision.analytics.heatmaps import HeatmapAccumulator
+                    from vision.rendering.heatmaps import HeatmapWriter
+
+                    index_rows = csv_output("heatmap_index.csv", HeatmapWriter.fields)
+                    emit_heatmap = HeatmapWriter(
+                        output_dir / "heatmaps.partial",
+                        index_rows,
+                        config.analytics.heatmap,
+                        manifest.run_id,
+                        config.video_id,
+                    )
+                    heatmap = HeatmapAccumulator(
+                        config.analytics.heatmap,
+                        metadata.width,
+                        metadata.height,
+                        model.resolve_classes(config.detector.classes),
+                        emit_heatmap,
+                        max_live_tracks=config.tracker.max_live_tracks,
+                    )
                 if counter is not None:
                     from vision.counting.export import CrossingSink
 
@@ -249,6 +298,7 @@ def process_video(
                             "postprocessing_ms",
                             "tracking_ms",
                             "counting_ms",
+                            "analytics_ms",
                             "render_ms",
                             "encode_submit_ms",
                         ],
@@ -286,7 +336,7 @@ def process_video(
                         first_s = frame.timestamp_s
                     last_s = frame.timestamp_s
                     batch = None
-                    render_ms = tracking_ms = counting_ms = 0.0
+                    render_ms = tracking_ms = counting_ms = analytics_ms = 0.0
                     output_frame = frame
                     if detector is not None:
                         from vision.rendering.detections import render_detections
@@ -335,6 +385,17 @@ def process_video(
                             sink.write(frame.timestamp_s, events)
                             counting_ms = (perf_counter() - before) * 1000
                             totals["counting_ms"] += counting_ms
+                        if zones is not None or heatmap is not None:
+                            before = perf_counter()
+                            if zones is not None:
+                                zone_batch = zones.update(frame, tracks)
+                                for event in zone_batch.events:
+                                    zone_event_rows.writerow(event.model_dump().values())
+                                occupancy_rows.writerows(zone_batch.occupancy)
+                            if heatmap is not None:
+                                heatmap.update(frame, tracks)
+                            analytics_ms = (perf_counter() - before) * 1000
+                            totals["analytics_ms"] += analytics_ms
                         before = perf_counter()
                         if tracker is not None:
                             from vision.rendering.tracks import render_tracks
@@ -357,6 +418,12 @@ def process_video(
                             from vision.rendering.lines import render_lines
 
                             pixels = render_lines(pixels, counter.lines, counter.summary())
+                        if zones is not None:
+                            from vision.rendering.zones import render_zones
+
+                            pixels = render_zones(
+                                pixels, config.analytics.zones, zones.current_occupancy
+                            )
                         render_ms = (perf_counter() - before) * 1000
                         drawn_count += drawn
                         output_frame = replace(frame, pixels=pixels)
@@ -384,6 +451,7 @@ def process_video(
                                 batch.postprocessing_ms,
                                 tracking_ms,
                                 counting_ms,
+                                analytics_ms,
                                 render_ms,
                                 encode_ms,
                             ]
@@ -403,6 +471,11 @@ def process_video(
                     history.finish()
                 if sink is not None:
                     sink.flush()
+                if zones is not None:
+                    for event in zones.finish():
+                        zone_event_rows.writerow(event.model_dump().values())
+                if heatmap is not None:
+                    heatmap.finish()
             elapsed = perf_counter() - started
             summary = {
                 "schema_version": "1.0",
@@ -434,6 +507,10 @@ def process_video(
                 if totals["inference_ms"] > 0
                 else None,
             }
+            if zones is not None:
+                summary["zones"] = zones.summary()
+            if heatmap is not None:
+                summary["heatmap"] = heatmap.summary()
             if counter is not None:
                 summary["counting"] = counter.summary()
             if tracker is not None:
@@ -467,6 +544,11 @@ def process_video(
             names += ["tracks.csv", "trajectories.csv", "track-lifetimes.csv"]
         if counter is not None:
             names += ["crossing_events.csv", "crossing_windows.csv"]
+        if zones is not None:
+            names += ["zone_events.csv", "zone_visits.csv", "zone_occupancy.csv"]
+        if heatmap is not None:
+            names += ["heatmap_index.csv"]
+            (output_dir / "heatmaps.partial").replace(output_dir / "heatmaps")
         for name in names:
             (output_dir / f"{name}.partial").replace(output_dir / name)
         if manifest is not None:
