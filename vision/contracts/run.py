@@ -35,6 +35,7 @@ class RunManifest(Contract):
     hardware: Annotated[str, Field(min_length=1)]
     software: tuple[SoftwareVersion, ...]
     detector: ModelReference | None = None
+    class_mapping: tuple[tuple[NonNegativeInt, str], ...] = ()
 
     @model_validator(mode="after")
     def validate_snapshot(self) -> Self:
@@ -47,6 +48,9 @@ class RunManifest(Contract):
             raise ValueError("software names must be unique")
         if self.detector is not None and self.detector.model_id != self.config.detector_model_id:
             raise ValueError("detector must match the configured model")
+        ids = [item[0] for item in self.class_mapping]
+        if len(set(ids)) != len(ids):
+            raise ValueError("class_mapping IDs must be unique")
         return self
 
 
