@@ -1,0 +1,16 @@
+---
+description: Workspace temporal, editor de geometria e visualização científica.
+globs: "frontend/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Interface
+
+- UI em inglês, dark mode e azul; estados vazios, erros e carregamento explícitos.
+- Consumir catálogo e cliente tipado; não duplicar defaults ou regras de contagem.
+- Editor converte display→imagem original→normalizado, considerando letterboxing.
+- Exemplo: x da tela não equivale a x do frame quando existe margem lateral.
+- Explicar direção A/B e oferecer campos acessíveis para geometria.
+- Polling termina em estados finais; preservar configuração em erro recuperável.
+- Gráficos indicam unidades; ausência de GT gera not evaluated com motivo.
+- Comparação expõe diferenças de dados/configurações/hardware e limites de validade.
