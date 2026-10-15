@@ -95,3 +95,13 @@ Incluem formatos retrato/paisagem, bounds nas coordenadas originais e entrada
 vazia. Durante esses testes, conexões de rede são bloqueadas para confirmar
 execução local. A suíte leve usa casos determinísticos e adapters de fixture
 identificados; não apresenta suas saídas como resultados de YOLO real.
+
+
+## Tracker — Onda 3
+
+ByteTrack usa o mesmo pacote Ultralytics headless 8.4.177 do detector, sem pesos
+adicionais, com `lap==0.5.13` fixado. Aplicam-se os termos AGPL-3.0/Enterprise do
+SDK; LAP usa licença BSD-2-Clause, conforme metadata da distribuição instalada.
+Não se escolhe aqui a licença do monorepo. Preset e contratos operacionais estão
+em [tracking.md](tracking.md) e ADR-010. Smoke em CPU com imagem repetida valida
+integração, sem evidência de desempenho MOT em dados reais.
