@@ -3,13 +3,14 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–1 implemented: foundation and local video CLI.
+**Status:** Waves 0–2 implemented: foundation, video CLI, and verified YOLO detection.
 
 The foundation includes an independent Python package, validated data contracts,
-an empty model catalog, FastAPI liveness, and a Next.js shell with API status.
+a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
 The video extra adds PyAV/FFmpeg decoding and H.264 export, OpenCV preview,
-metadata, original frame timestamps, and temporal selection. YOLO, ByteTrack,
-SQLite jobs, and analytics arrive in later waves. No HTTP upload, inference,
+metadata, original frame timestamps, and temporal selection. The detector extra
+adds YOLO11n with CPU inference and annotated exports. ByteTrack,
+SQLite jobs, and analytics arrive in later waves. No HTTP upload, tracking,
 worker, or database is implemented yet.
 
 ## Requirements
@@ -17,7 +18,8 @@ worker, or database is implemented yet.
 - [uv 0.13.1](https://docs.astral.sh/uv/getting-started/installation/) for Python
   environments and the committed lockfile. It provisions Python 3.12 if needed.
 - Node.js 24 and npm. `frontend/.nvmrc` records the Node major version.
-- No GPU or model weights needed. The video extra uses FFmpeg libraries through
+- GPU is not required. Video-only mode needs no model weights; detection requires
+  an explicitly prepared checkpoint. The video extra uses FFmpeg libraries through
   PyAV; system `ffmpeg`/`ffprobe` executables are optional.
 
 The foundation is tested on Python 3.12 and 3.14. Compatibility of future model
@@ -81,7 +83,8 @@ H.264 is lossy; the PNG preview retains the decoded BGR frame exactly.
 Input: local MP4, one video stream, square pixels and no rotation. Default limits:
 512 MiB, 300 seconds, 1920×1080 pixels per frame, and 36,000 frames. Override with
 `--limits examples/video-limits.json` (edit a local copy). Video export requires
-even dimensions and drops audio. It performs no detection or annotation yet.
+even dimensions and drops audio. Copy-only mode performs no inference; select
+`--model` to enable detection.
 
 PTS is required by default, including for VFR. Use `--cfr-fallback-fps 25` only
 when asserting that the entire source is CFR: it overrides all timestamps and
@@ -92,6 +95,48 @@ Failures retain `.partial` files and `failure.json`; they never produce a comple
 summary. CLI returns JSON, exit 2 on expected error and 130 on interruption.
 
 Data provenance, planned scenes and annotation gates: [datasets](docs/datasets.md).
+
+## YOLO detection (Wave 2)
+
+Install the optional CPU stack and explicitly prepare verified official weights:
+
+```bash
+uv sync --locked --extra api --extra video --extra detector
+.venv/bin/traffic-video models
+.venv/bin/traffic-video prepare-model yolo11n-coco --directory checkpoints
+.venv/bin/traffic-video process data/sample-vfr.mp4 \
+  --output-dir artifacts/yolo-sample --model yolo11n-coco \
+  --checkpoint checkpoints/yolo11n.pt --device cpu --image-size 640 \
+  --classes person bicycle car motorcycle bus truck
+```
+
+The synthetic sample may produce no detections; a valid empty result is expected.
+To run an explicit positive smoke with an official example image:
+
+```bash
+.venv/bin/python scripts/smoke_detector.py --checkpoint checkpoints/yolo11n.pt \
+  --output-dir artifacts/yolo-cpu-smoke --download-example
+.venv/bin/pytest -m detector
+```
+
+The smoke downloads an explicitly requested pinned image and repeats it in a short
+video. It proves integration and supplies no traffic accuracy benchmark. Use
+`--image /path/to/authorized-image.jpg` instead to supply your own image.
+Real tests expect the official example (override `TRAFFIC_TEST_IMAGE` and
+`TRAFFIC_TEST_CHECKPOINT` paths if needed); missing assets fail rather than skip.
+
+Detection runs additionally export `detections.csv`, `timings.csv`, and
+`manifest.json`. Boxes are in original pixels. Counts in the summary represent
+box observations across frames, not unique vehicles or crossings. The original
+preview remains unannotated; boxes/scores are drawn on the exported video.
+`--confidence` controls retained detections; `--visualization-confidence` only
+controls drawing. Lower-confidence detections remain available for future tracking.
+
+Inference operates offline after preparation; checkpoint hash and full class map
+are verified. CPU wheels are selected by the committed uv configuration. CUDA
+requires a compatible separately validated build; this CPU lock does not install
+CUDA libraries. See [model provenance and methodology](docs/model-inventory.md)
+for versions, licensing sources, coordinate conversion and timing definitions.
 
 ## Quality checks
 
@@ -119,11 +164,15 @@ npm run build
 Next.js route types before running TypeScript, so it works on a clean checkout.
 The production shell can be served with `npm run start` after a build.
 GitHub Actions runs Python 3.12/3.14, an isolated installed-package check, and
-the frontend checks without GPUs or model/data downloads.
+the frontend checks without GPUs or model/data downloads. Model integration
+tests are deselected in the default lightweight run; select `-m detector`
+explicitly after preparing assets. A manual workflow_dispatch option enables
+the separate CPU smoke job with explicit downloads.
 
 To install only the independent core, use `uv sync --locked --no-default-groups`
 (this removes API/development extras from that environment). To restore the
 development environment, run `uv sync --locked --extra api --extra video` again.
+Include `--extra detector` whenever synchronizing an environment that needs YOLO.
 
 ## Project documentation
 
@@ -136,6 +185,7 @@ development environment, run `uv sync --locked --extra api --extra video` again.
 - [Implemented architecture](docs/architecture.md)
 - [Current API contract](docs/api-contract.md)
 - [Video data and annotation plan](docs/datasets.md)
+- [Model inventory and detection methodology](docs/model-inventory.md)
 - [Current workboard](docs/agentic/workboard.md)
 - [Implementation task cards](docs/agentic/tasks/README.md)
 
@@ -143,5 +193,5 @@ Planning documentation is in Portuguese. Code, API, CLI, and UI use English.
 
 ## Next implementation step
 
-Continue with [Wave 2 — YOLO detector and baseline](docs/agentic/tasks/wave-2-detection.md).
+Continue with [Wave 3 — ByteTrack and trajectories](docs/agentic/tasks/wave-3-tracking.md).
 The delivery order is Python core, scientific evaluation, then web.
