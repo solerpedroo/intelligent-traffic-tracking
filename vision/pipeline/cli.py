@@ -8,7 +8,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from vision.contracts import ProcessingConfig
-from vision.contracts.config import DetectorConfig
+from vision.contracts.config import DetectorConfig, TrackerConfig
 from vision.contracts.errors import VisionError
 
 
@@ -29,6 +29,10 @@ def parser() -> argparse.ArgumentParser:
         if name == "process":
             command.add_argument("--model", help="Catalog model ID; omitted means copy-only")
             command.add_argument("--checkpoint", type=Path, help="Local verified checkpoint")
+            command.add_argument("--tracker", help="Catalog tracker preset ID")
+            command.add_argument(
+                "--tracker-config", type=Path, help="JSON override of TrackerConfig"
+            )
             command.add_argument("--confidence", type=float)
             command.add_argument("--iou", type=float)
             command.add_argument("--image-size", type=int)
@@ -106,11 +110,29 @@ def main(argv: list[str] | None = None) -> int:
                     options["classes"] = tuple(args.classes)
                 if args.model is None and (options or args.checkpoint is not None):
                     raise VisionError("unsupported_config", "Detector options require --model")
+                if args.tracker_config and not args.tracker:
+                    raise VisionError("unsupported_config", "--tracker-config requires --tracker")
+                tracker_config = TrackerConfig()
+                if args.tracker:
+                    from vision.configs import load_catalog
+
+                    tracker_config = load_catalog().get_tracker(args.tracker).defaults
+                if args.tracker_config:
+                    overrides = json.loads(args.tracker_config.read_text())
+                    if not isinstance(overrides, dict):
+                        raise VisionError(
+                            "invalid_input", "Tracker overrides must be a JSON object"
+                        )
+                    tracker_config = TrackerConfig.model_validate(
+                        {**tracker_config.model_dump(mode="json"), **overrides}
+                    )
                 config = ProcessingConfig(
                     video_id=args.video_id,
                     start_s=args.start_s,
                     end_s=args.end_s,
                     detector_model_id=args.model,
+                    tracker_config_id=args.tracker,
+                    tracker=tracker_config,
                     detector=DetectorConfig(**options),
                 )
                 result = process_video(
@@ -124,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2, allow_nan=False))
         return 0
     except ModuleNotFoundError as error:
-        if error.name not in {"av", "cv2", "torch", "ultralytics", "torchvision"}:
+        if error.name not in {"av", "cv2", "torch", "ultralytics", "torchvision", "lap"}:
             raise
         payload = {
             "error_code": "missing_video_extra"
@@ -132,7 +154,7 @@ def main(argv: list[str] | None = None) -> int:
             else "missing_detector_extra",
             "error": "Install the required video/detector extra",
         }
-    except (OSError, ValidationError, VisionError) as error:
+    except (OSError, ValueError, ValidationError, VisionError) as error:
         payload = {"error_code": getattr(error, "code", "invalid_input"), "error": str(error)}
     except KeyboardInterrupt:
         payload = {"error_code": "cancelled", "error": "Processing interrupted"}
