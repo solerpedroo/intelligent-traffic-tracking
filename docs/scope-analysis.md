@@ -86,5 +86,6 @@ timestamps, codecs, limites de upload e dados de avaliação devem ser validados
 nas ondas correspondentes. A análise é documental: não foram executados
 benchmarks, verificados termos externos ou selecionados datasets definitivos.
 
-Próxima execução: [Onda 0](agentic/tasks/wave-0-foundation.md), conforme o
-[plano de implementação](implementation-plan.md).
+A análise orientou a [Onda 0](agentic/tasks/wave-0-foundation.md), conforme o
+[plano de implementação](implementation-plan.md). Para o estado atual e a
+próxima execução, consultar o [workboard](agentic/workboard.md).
