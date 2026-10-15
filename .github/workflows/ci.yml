@@ -1,0 +1,77 @@
+name: Quality
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+      - run: uv sync --locked --extra api --python ${{ matrix.python }}
+      - run: .venv/bin/ruff check vision backend
+      - run: .venv/bin/ruff format --check vision backend
+      - run: .venv/bin/pytest
+
+  package:
+    name: Installed core without API
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+      - run: uv build
+      - run: uv venv --python 3.12 /tmp/traffic-core
+      - run: uv pip install --python /tmp/traffic-core/bin/python dist/*.whl
+      - name: Verify installed package and packaged catalog
+        working-directory: /tmp
+        run: |
+          /tmp/traffic-core/bin/python -I - <<'PY'
+          import importlib.util
+          from vision.contracts import Detection, FramePacket, ProcessingConfig, RunManifest
+          from vision.configs import load_catalog
+          assert load_catalog().models == ()
+          for name in ("fastapi", "uvicorn", "torch", "cv2"):
+              assert importlib.util.find_spec(name) is None, name
+          PY
+
+  frontend:
+    name: Web quality and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
