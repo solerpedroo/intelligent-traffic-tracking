@@ -1,0 +1,170 @@
+"""Versioned tabular exports. Column order is the on-disk contract."""
+
+from vision.contracts import CrossingEvent, ZoneEvent, ZoneVisit
+
+EXPORT_SCHEMA_VERSION = "1.0"
+
+FRAMES_COLUMNS = (
+    "frame_index",
+    "timestamp_s",
+    "timestamp_source",
+    "export_timestamp_s",
+)
+DETECTIONS_COLUMNS = (
+    "run_id",
+    "video_id",
+    "frame_index",
+    "timestamp_s",
+    "class_id",
+    "class_name",
+    "confidence",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+)
+TRACKS_COLUMNS = (
+    "run_id",
+    "video_id",
+    "frame_index",
+    "timestamp_s",
+    "track_id",
+    "class_id",
+    "state",
+    "confidence",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+)
+TIMINGS_COLUMNS = (
+    "frame_index",
+    "timestamp_s",
+    "decode_ms",
+    "preprocessing_ms",
+    "predict_ms",
+    "inference_ms",
+    "postprocessing_ms",
+    "tracking_ms",
+    "counting_ms",
+    "analytics_ms",
+    "render_ms",
+    "encode_submit_ms",
+)
+CROSSING_EVENTS_COLUMNS = tuple(CrossingEvent.model_fields)
+CROSSING_WINDOWS_COLUMNS = (
+    "run_id",
+    "video_id",
+    "window_start_s",
+    "window_end_s",
+    "line_id",
+    "class_id",
+    "direction",
+    "count",
+)
+TRAJECTORY_COLUMNS = (
+    "run_id",
+    "video_id",
+    "frame_index",
+    "timestamp_s",
+    "track_id",
+    "class_id",
+    "confidence",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "bottom_center_x",
+    "bottom_center_y",
+)
+LIFETIME_COLUMNS = (
+    "run_id",
+    "video_id",
+    "track_id",
+    "class_id",
+    "start_s",
+    "last_seen_s",
+    "observed_span_s",
+    "observations",
+    "closure_reason",
+    "analysis_eligible",
+)
+ZONE_EVENTS_COLUMNS = tuple(ZoneEvent.model_fields)
+ZONE_VISITS_COLUMNS = tuple(ZoneVisit.model_fields)
+ZONE_OCCUPANCY_COLUMNS = (
+    "run_id",
+    "video_id",
+    "frame_index",
+    "timestamp_s",
+    "zone_id",
+    "class_id",
+    "observed_count",
+)
+HEATMAP_INDEX_COLUMNS = (
+    "run_id",
+    "video_id",
+    "window_start_s",
+    "window_end_s",
+    "class_id",
+    "grid_width",
+    "grid_height",
+    "observations",
+    "unit",
+    "sigma_cells",
+    "array_file",
+    "preview_file",
+)
+
+EXPORT_TABLES = {
+    "frames.csv": FRAMES_COLUMNS,
+    "detections.csv": DETECTIONS_COLUMNS,
+    "timings.csv": TIMINGS_COLUMNS,
+    "tracks.csv": TRACKS_COLUMNS,
+    "trajectories.csv": TRAJECTORY_COLUMNS,
+    "track-lifetimes.csv": LIFETIME_COLUMNS,
+    "crossing_events.csv": CROSSING_EVENTS_COLUMNS,
+    "crossing_windows.csv": CROSSING_WINDOWS_COLUMNS,
+    "zone_events.csv": ZONE_EVENTS_COLUMNS,
+    "zone_visits.csv": ZONE_VISITS_COLUMNS,
+    "zone_occupancy.csv": ZONE_OCCUPANCY_COLUMNS,
+    "heatmap_index.csv": HEATMAP_INDEX_COLUMNS,
+}
+
+COLUMN_UNITS = {
+    "frame_index": "original_zero_based_frame",
+    "timestamp_s": "seconds_on_original_media_timeline",
+    "export_timestamp_s": "seconds_from_first_selected_frame",
+    "timestamp_source": "pts_or_fps_fallback",
+    "confidence": "unit_interval",
+    "x1": "original_pixels",
+    "y1": "original_pixels",
+    "x2": "original_pixels",
+    "y2": "original_pixels",
+    "bottom_center_x": "original_pixels",
+    "bottom_center_y": "original_pixels",
+    "decode_ms": "milliseconds",
+    "preprocessing_ms": "milliseconds",
+    "predict_ms": "milliseconds",
+    "inference_ms": "milliseconds",
+    "postprocessing_ms": "milliseconds",
+    "tracking_ms": "milliseconds",
+    "counting_ms": "milliseconds",
+    "analytics_ms": "milliseconds",
+    "render_ms": "milliseconds",
+    "encode_submit_ms": "milliseconds",
+    "window_start_s": "seconds_on_original_media_timeline",
+    "window_end_s": "seconds_on_original_media_timeline",
+    "start_s": "seconds_on_original_media_timeline",
+    "last_seen_s": "seconds_on_original_media_timeline",
+    "observed_span_s": "seconds_of_observed_span",
+    "first_inside_s": "seconds_on_original_media_timeline",
+    "last_inside_s": "seconds_on_original_media_timeline",
+    "closed_s": "seconds_on_original_media_timeline",
+    "evidence_start_s": "seconds_on_original_media_timeline",
+    "observed_dwell_s": "seconds_of_consecutive_inside_observations",
+    "intersection_xy": "original_pixels_xy",
+    "observations": "count",
+    "observed_count": "observed_track_ids",
+    "count": "crossing_events",
+    "unit": "observations_per_grid_cell",
+}
