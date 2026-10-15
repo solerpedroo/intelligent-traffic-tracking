@@ -6,7 +6,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 
 from vision.contracts.base import Contract, Identifier, NonNegativeInt, Sha256
-from vision.contracts.config import DetectorConfig
+from vision.contracts.config import DetectorConfig, TrackerConfig
 from vision.contracts.errors import VisionError
 
 
@@ -42,10 +42,19 @@ class CatalogModel(Contract):
         return tuple(lookup[name] for name in names)
 
 
+class TrackerPreset(Contract):
+    tracker_config_id: Identifier
+    implementation: Literal["ultralytics.BYTETracker"] = "ultralytics.BYTETracker"
+    implementation_version: Literal["8.4.177"] = "8.4.177"
+    buffer_unit: Literal["processed_frames"] = "processed_frames"
+    class_policy: Literal["first_detection"] = "first_detection"
+    defaults: TrackerConfig = Field(default_factory=TrackerConfig)
+
+
 class ModelCatalog(Contract):
     schema_version: Literal["1.0"] = "1.0"
     models: tuple[CatalogModel, ...] = ()
-    tracker_configs: tuple[()] = ()
+    tracker_configs: tuple[TrackerPreset, ...] = ()
     detector_defaults: DetectorConfig = Field(default_factory=DetectorConfig)
 
     @model_validator(mode="after")
@@ -53,7 +62,16 @@ class ModelCatalog(Contract):
         ids = [model.model_id for model in self.models]
         if len(set(ids)) != len(ids):
             raise ValueError("Model IDs must be unique")
+        tracker_ids = [preset.tracker_config_id for preset in self.tracker_configs]
+        if len(set(tracker_ids)) != len(tracker_ids):
+            raise ValueError("Tracker IDs must be unique")
         return self
+
+    def get_tracker(self, tracker_config_id: str) -> TrackerPreset:
+        for preset in self.tracker_configs:
+            if preset.tracker_config_id == tracker_config_id:
+                return preset
+        raise VisionError("unknown_tracker", f"Unknown tracker: {tracker_config_id}")
 
     def get_model(self, model_id: str) -> CatalogModel:
         for model in self.models:
