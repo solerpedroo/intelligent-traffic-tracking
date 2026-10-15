@@ -3,6 +3,12 @@ name: Quality
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      detector_smoke:
+        description: "Explicitly download official weights/example and run real CPU smoke"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -12,6 +18,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  detector:
+    if: github.event_name == 'workflow_dispatch' && inputs.detector_smoke
+    name: Explicit YOLO CPU smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+      - run: uv sync --locked --extra video --extra detector --python 3.12
+      - run: .venv/bin/traffic-video prepare-model yolo11n-coco --directory checkpoints
+      - run: .venv/bin/python scripts/smoke_detector.py --checkpoint checkpoints/yolo11n.pt --output-dir artifacts/cpu-smoke --download-example
+      - run: .venv/bin/pytest -m detector
   python:
     name: Python ${{ matrix.python }}
     runs-on: ubuntu-latest
@@ -53,7 +73,7 @@ jobs:
           from vision.contracts import Detection, FramePacket, ProcessingConfig, RunManifest
           from vision.configs import load_catalog
           from vision.pipeline.cli import main
-          assert load_catalog().models == ()
+          assert load_catalog().get_model("yolo11n-coco").filename == "yolo11n.pt"
           for name in ("fastapi", "uvicorn", "torch", "cv2", "av"):
               assert importlib.util.find_spec(name) is None, name
           error = io.StringIO()
