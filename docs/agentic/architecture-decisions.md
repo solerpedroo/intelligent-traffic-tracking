@@ -165,3 +165,41 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
   [headless](https://docs.ultralytics.com/quickstart/),
   [licenças](https://www.ultralytics.com/license),
   [PyTorch CPU/uv](https://docs.astral.sh/uv/guides/integration/pytorch/).
+
+## ADR-010 — ByteTrack concreto, estado temporal e trajetórias
+
+- Data: 2026-10-15. Estado: aceito e implementado na Onda 3.
+- Usar `ultralytics.trackers.byte_tracker.BYTETracker` da distribuição headless
+  8.4.177, já fixada para YOLO; fixar também `lap==0.5.13`. Nenhuma cópia ou
+  aproximação própria do algoritmo. Importação opcional pelo extra detector;
+  testes reais marcados `tracker`, separados da suíte sem Torch.
+- Adapter recebe detecções xyxy originais, converte para a interface NumPy do
+  SDK e avança em todo frame, inclusive vazio. Não passar pelo filtro de desenho.
+  Exigir detector.confidence <= track_low_thresh e low < high <= new.
+- Buffer em chamadas/frames processados, stride=1, sem ajuste pelo FPS declarado.
+  Exigir índices consecutivos e PTS crescentes; recortes podem começar em índice
+  não zero. Kalman tem passo unitário, sem modelar dt variável de VFR. PTS reais
+  continuam nos CSVs; buffer não representa tolerância em segundos.
+- Expirar lost antes da associação quando `frame_atual - último_observado > buffer`.
+  O upstream verifica idade após associação; o adapter restringe esse detalhe para
+  impedir reviver IDs expirados. Recuperação no limite inclusivo é testada.
+- Associação agnóstica à classe do upstream, classe congelada na primeira detecção
+  do ID, inclusive fase não confirmada. Isso evita alternância de agregados; não
+  corrige uma classificação inicial errada nem resolve ambiguidades de oclusão.
+- IDs são locais à instância/execução, reiniciados em 1; não representam pessoas
+  ou veículos persistentes. Testar instâncias intercaladas, reset e duas execuções.
+- Observed usa a caixa/confiança da detecção associada; lost usa caixa estimada,
+  confidence=null e não gera ponto de trajetória nem overlay. Novas entradas após
+  o primeiro update exigem confirmação upstream; não retropreencher pontos.
+- História recente: deque por ID, 64 pontos padrão, apenas IDs vivos/perdidos.
+  Limite padrão 4.000 tracks vivas, erro explícito ao exceder. Pool removed do SDK
+  limitado a 1.000. CSV completo em streaming, sem listas de todas as identidades.
+- Preservar tracks curtas nos dados auditáveis; `min_observations=3` marca
+  `analysis_eligible` no fechamento para filtragem de análise posterior. Não é
+  remoção retroativa de CSV nem regra de crossing (Onda 4).
+- Última observação encerra o span observado; término da seleção é censurado,
+  não saída geométrica. Logs permitem investigar fragmentação; sem GT não
+  computar ID switches, IDF1 ou HOTA. Ver [contratos operacionais](../tracking.md).
+- Fontes primárias: [implementação fixada](https://github.com/ultralytics/ultralytics/blob/v8.4.177/ultralytics/trackers/byte_tracker.py),
+  [gestão dos pools](https://github.com/ultralytics/ultralytics/blob/v8.4.177/ultralytics/trackers/utils/stracks.py),
+  [artigo ByteTrack](https://arxiv.org/abs/2110.06864).
