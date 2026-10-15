@@ -2,7 +2,7 @@
 
 ## Estado e início de sessão
 
-Ondas 0–1 concluídas e validadas localmente. Próxima: Onda 2. Consulte o estado
+Ondas 0–2 concluídas e validadas localmente. Próxima: Onda 3. Consulte o estado
 atual em [docs/agentic/workboard.md](docs/agentic/workboard.md).
 
 1. Leia [o escopo](docs/project-scope.md), [a análise](docs/scope-analysis.md)
@@ -67,6 +67,9 @@ vision backend scripts` e `.venv/bin/pytest`. Frontend: em `frontend/`, `npm ci`
 `npm run lint`, `npm run typecheck`, `npm run test` e `npm run build`.
 `typecheck` gera tipos Next.js antes do tsc. Biome cuida do lint/formatação web.
 Execute os checks exigidos pelo cartão e pela área alterada.
+Inferência CPU requer também `--extra detector`. Testes reais são opt-in com
+`.venv/bin/pytest -m detector`, após preparar pesos/exemplo; a suíte leve não
+baixa assets nem precisa de Torch. Ver docs/model-inventory.md.
 Testes pulados precisam de motivo; mocks não substituem integração real.
 Feche uma onda apenas com critérios e evidências completos.
 
@@ -74,4 +77,6 @@ Não iniciar fine-tuning, outro tracker, RTSP, múltiplas câmeras, identificaç
 pessoal ou deploy em nuvem como consequência implícita de uma tarefa do MVP.
 CLI de vídeo: `.venv/bin/traffic-video capabilities`, `probe` e `process`;
 ver README e docs/architecture.md para PTS, limites e artefatos parciais.
-Próxima tarefa: [wave-2-detection](docs/agentic/tasks/wave-2-detection.md).
+CLI `models` e `prepare-model` gerenciam definições/pesos; `process --model`
+usa checkpoint local verificado. Confidence de desenho não remove detecções do CSV.
+Próxima tarefa: [wave-3-tracking](docs/agentic/tasks/wave-3-tracking.md).
