@@ -28,11 +28,30 @@ class DetectorConfig(Contract):
         return self
 
 
-class ProcessingConfig(Contract):
-    """Empty catalog means model IDs are unconfigured, never placeholder checkpoints.
+class TrackerConfig(Contract):
+    """ByteTrack controls; buffer counts update calls, never seconds or nominal FPS."""
 
-    Model-specific thresholds and geometry schemas are added alongside their
-    validated adapters in Waves 2–5. Baseline sampling is intentionally fixed.
+    track_high_thresh: Confidence = 0.25
+    track_low_thresh: Confidence = 0.1
+    new_track_thresh: Confidence = 0.25
+    track_buffer: Annotated[int, Field(ge=1, le=300)] = 30
+    match_thresh: Annotated[float, Field(gt=0, le=1)] = 0.8
+    fuse_score: bool = True
+    min_observations: Annotated[int, Field(ge=1, le=1000)] = 3
+    history_points: Annotated[int, Field(ge=2, le=1000)] = 64
+    max_live_tracks: Annotated[int, Field(ge=1, le=10000)] = 4000
+
+    @model_validator(mode="after")
+    def validate_thresholds(self) -> Self:
+        if not self.track_low_thresh < self.track_high_thresh <= self.new_track_thresh:
+            raise ValueError("Require low < high <= new track threshold")
+        return self
+
+
+class ProcessingConfig(Contract):
+    """Resolved run controls; model and tracker IDs are checked against the catalog.
+
+    Baseline sampling is fixed; geometry enters alongside its validated adapters.
     """
 
     schema_version: Literal["1.0"] = "1.0"
@@ -40,6 +59,7 @@ class ProcessingConfig(Contract):
     detector_model_id: Identifier | None = None
     detector: DetectorConfig = Field(default_factory=DetectorConfig)
     tracker_config_id: Identifier | None = None
+    tracker: TrackerConfig = Field(default_factory=TrackerConfig)
     frame_stride: Annotated[int, Field(ge=1, le=1)] = 1
     render_annotated_video: bool = True
     start_s: Seconds = 0.0
@@ -51,4 +71,6 @@ class ProcessingConfig(Contract):
             raise ValueError("end_s must be greater than start_s")
         if self.tracker_config_id is not None and self.detector_model_id is None:
             raise ValueError("tracker_config_id requires detector_model_id")
+        if self.tracker_config_id and self.detector.confidence > self.tracker.track_low_thresh:
+            raise ValueError("Detector confidence must be <= tracker low threshold")
         return self
