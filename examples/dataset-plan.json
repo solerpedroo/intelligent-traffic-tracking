@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "status": "planned_not_downloaded",
+  "source": "Stanford Drone Dataset",
+  "source_url": "https://cvgl.stanford.edu/projects/uav_data/",
+  "published_license": "CC-BY-NC-SA-3.0",
+  "intended_use": "noncommercial_research",
+  "test_split_frozen": false,
+  "candidates": [
+    {
+      "id": "SDD-NEXUS-0",
+      "sequence_candidate": "nexus/video0",
+      "scene_group": "nexus",
+      "planned_split": "development",
+      "camera_audited": false,
+      "sha256": null
+    },
+    {
+      "id": "SDD-DEATHCIRCLE-0",
+      "sequence_candidate": "deathCircle/video0",
+      "scene_group": "deathCircle",
+      "planned_split": "validation",
+      "camera_audited": false,
+      "sha256": null
+    },
+    {
+      "id": "SDD-GATES-0",
+      "sequence_candidate": "gates/video0",
+      "scene_group": "gates",
+      "planned_split": "test",
+      "camera_audited": false,
+      "sha256": null
+    }
+  ]
+}
