@@ -335,5 +335,9 @@
       ]
     }
   ],
-  "tracker_configs": []
+  "tracker_configs": [
+    {
+      "tracker_config_id": "bytetrack-default"
+    }
+  ]
 }
