@@ -1,0 +1,13 @@
+---
+description: Contexto compartilhado e entrega incremental do Intelligent Traffic Tracking.
+alwaysApply: true
+---
+
+# Protocolo comum
+
+- Leia `AGENTS.md`, o cartão ativo, o workboard e os ADRs antes de implementar.
+- Siga `docs/implementation-plan.md`; não iniciar ondas futuras implicitamente.
+- Documentação em português; código, API, CLI e UI em inglês.
+- Registre evidências reais. Não invente resultados, métricas ou testes executados.
+- Atualize cartão/workboard e deixe handoff para continuação não óbvia.
+- Use o rigor de engenharia e pesquisa descrito em AGENTS; persona não substitui validação.
