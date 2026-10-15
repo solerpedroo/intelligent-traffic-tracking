@@ -2,7 +2,7 @@
 
 ## Estado e início de sessão
 
-Ondas 0–5 concluídas e validadas localmente. Próxima: Onda 6. Consulte o estado
+Ondas 0–6 concluídas e validadas localmente. Próxima: Onda 7. Consulte o estado
 atual em [docs/agentic/workboard.md](docs/agentic/workboard.md).
 
 1. Leia [o escopo](docs/project-scope.md), [a análise](docs/scope-analysis.md)
@@ -84,4 +84,6 @@ Tracking: `process --tracker bytetrack-default`, com overrides por
 Contagem: `--counting-config lines.json`, com contratos em docs/counting.md.
 ROI/heatmaps: `--analytics-config zones.json`; ver docs/zones-heatmaps.md. Dwell
 usa apenas intervalos consecutivos observados; perdas e limites são censurados.
-Próxima tarefa: [wave-6-exports](docs/agentic/tasks/wave-6-exports.md).
+Exports: `--no-annotated-video` preserva CSV/JSON/NPZ e registra aviso. Falha de
+codec ou overlay não publica o MP4 e não apaga os números. Ver ADR-013.
+Próxima tarefa: [wave-7-evaluation](docs/agentic/tasks/wave-7-evaluation.md).
