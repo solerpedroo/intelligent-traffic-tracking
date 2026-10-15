@@ -1,6 +1,6 @@
 # Intelligent Traffic Tracking — Plano de implementação
 
-Versão: 1.0 · Data: 2026-10-15 · Estado: ondas 0–5 implementadas e validadas localmente; ondas 6–12 planejadas.
+Versão: 1.0 · Data: 2026-10-15 · Estado: ondas 0–6 implementadas e validadas localmente; ondas 7–12 planejadas.
 Fonte de requisitos: [project-scope.md](project-scope.md).
 Interpretação e adaptações: [scope-analysis.md](scope-analysis.md).
 
@@ -484,13 +484,12 @@ datasets/GT efetivamente auditados e eventuais provedores de hospedagem.
 
 ## 10. Estado atual e próximo passo
 
-Ondas 0–5 implementadas: fundação, CLI, PTS/VFR, YOLO11n, ByteTrack, crossing
-finito e ROI com visitas censuradas/permanência observada, ocupação temporal e
-heatmaps por classe/janela. Contratos em [tracking.md](tracking.md),
-[counting.md](counting.md) e [zones-heatmaps.md](zones-heatmaps.md).
-Evidências nos cartões [0](agentic/tasks/wave-0-foundation.md),
-[1](agentic/tasks/wave-1-video-cli.md), [2](agentic/tasks/wave-2-detection.md),
-[3](agentic/tasks/wave-3-tracking.md), [4](agentic/tasks/wave-4-counting.md)
-e [5](agentic/tasks/wave-5-zones-heatmaps.md). Pilotos locais verificam integração;
+Ondas 0–6 implementadas: fundação, CLI, PTS/VFR, YOLO11n, ByteTrack, crossing
+finito, ROI com visitas censuradas e exports versionados que sobrevivem à falha
+de vídeo anotado. Contratos em [tracking.md](tracking.md),
+[counting.md](counting.md) e [zones-heatmaps.md](zones-heatmaps.md); schema em
+`vision/pipeline/schemas.py` (ADR-013).
+Evidências nos cartões [0](agentic/tasks/wave-0-foundation.md) a
+[6](agentic/tasks/wave-6-exports.md). Pilotos locais verificam integração;
 GT/splits para avaliação científica e execução remota de CI seguem pendentes.
-Próxima: [Onda 6](agentic/tasks/wave-6-exports.md). Não antecipar outras ondas.
+Próxima: [Onda 7](agentic/tasks/wave-7-evaluation.md). Não antecipar outras ondas.
