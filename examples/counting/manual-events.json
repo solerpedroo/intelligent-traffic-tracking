@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "purpose": "development_sanity_check_not_benchmark_ground_truth",
+  "annotation_method": "Codex visual inspection of source frames with the configured line; no model boxes or IDs used for labeling",
+  "source_url": "https://media.roboflow.com/supervision/video-examples/vehicles.mp4",
+  "source_sha256": "ac81100d9310bd4e9c02bc0b13b6492781d009742ced347766b2601be3c44ad4",
+  "derived_input": {"first_frame": 0, "frames": 150, "fps": 25, "width": 1280, "height": 720},
+  "line_config": "lines.json",
+  "confirmation_tolerance_frames": 3,
+  "events": [
+    {"object_note": "white MAN box truck in the left lane", "line_id": "approach", "class_id": 7, "direction": "A_TO_B", "crossing_frame_interval": [7, 10]},
+    {"object_note": "black SUV ahead of the white car in the right approaching lane", "line_id": "approach", "class_id": 2, "direction": "A_TO_B", "crossing_frame_interval": [11, 14]},
+    {"object_note": "white passenger car behind the black SUV; front partially occluded, wider interval", "line_id": "approach", "class_id": 2, "direction": "A_TO_B", "crossing_frame_interval": [22, 30]}
+  ],
+  "excluded": "vehicles on the opposite carriageway and vehicles not reaching the finite segment within the first 150 frames",
+  "limitations": "Small development sample inspected by the coding agent, not an independent human annotation or frozen evaluation split. Approximate image-space lower center; no MOT identity ground truth. Confirmation delay is distinct from geometric crossing."
+}
