@@ -58,10 +58,10 @@ referenciar a anterior sem apagar seu histórico.
 - Onda 0: resolvido por ADR-006; versões exatas nos lockfiles.
 - Onda 1: implementação técnica resolvida por ADR-007 e plano de dados por ADR-008;
   aquisição/auditoria e congelamento dos splits reais seguem pendentes antes da avaliação.
-- Onda 2: checkpoint/contrato resolvidos por ADR-009. Onda 3 ainda deve
-  definir ByteTrack concreto, alinhar thresholds e estabilizar classe da track.
-- Ondas 4–5: tamanho mínimo, banda, lacuna máxima e regras temporais de dwell.
+- Ondas 2–5: resolvidas por ADR-009 a ADR-012.
+- Onda 6: resolvida por ADR-013.
 - Onda 7: formatos GT, tolerâncias de pareamento e agregações científicas.
+  Splits reais continuam não auditados, conforme ADR-008.
 - Onda 9: migrações, retenção/cotas, heartbeat, recuperação e contrato HTTP final.
 - Onda 12: LICENSE e eventual plano de hospedagem, após verificar termos reais.
 
@@ -285,3 +285,26 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
 - Preview com falha mantém NPZ numérico em heatmaps.partial e sinaliza erro.
   Integridade/publicação numérica independente da renderização será consolidada
   na Onda 6. Contratos operacionais: [zones-heatmaps.md](../zones-heatmaps.md).
+
+## ADR-013 — Exports versionados e falha de renderização (Onda 6)
+
+- Data: 2026-10-15. Estado: aceito para implementação.
+- Decisão: schema de exportação `1.0` em `vision/pipeline/schemas.py`, com colunas
+  e unidades. Toda execução bem-sucedida no núcleo publica `config.json`,
+  `manifest.json`, `summary.json` e os CSV aplicáveis. `config.json` guarda a
+  configuração resolvida e pode ser recarregada por JSON.
+- `render_annotated_video=false` ou `--no-annotated-video` não gera MP4. O
+  summary fica `completed_with_warnings`, com `annotated_video_skipped`. CSV,
+  NPZ, manifest e summary continuam válidos (`numeric_results_valid`).
+- Falha de overlay, encoder, finalização do MP4 ou preview PNG não falha o
+  núcleo. O vídeo ou o preview não é promovido; o summary registra `failed` ou
+  o aviso correspondente. Falha de decode, detector, tracker, contagem, analytics
+  ou escrita de tabela continua `failed`/`cancelled`, com `failure.json` e sem
+  summary de sucesso.
+- Preview de heatmap que não codifica PNG conserva o NPZ e deixa `preview_file`
+  vazio, com aviso. Publicação final continua atômica: `.partial` só é renomeado
+  depois do fechamento. Um encoder que apaga um MP4 vazio não cria um vídeo
+  publicado.
+- Consequência: ausência de vídeo anotado não é execução incompleta do núcleo.
+  MOT segue `not_evaluated_no_ground_truth` sem GT. Avaliação real permanece
+  na Onda 7.
