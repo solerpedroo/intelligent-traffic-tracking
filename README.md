@@ -3,14 +3,15 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–3 implemented: foundation, video CLI, YOLO detection, and ByteTrack.
+**Status:** Waves 0–4 implemented: foundation, video CLI, YOLO, ByteTrack, and auditable line counting.
 
 The foundation includes an independent Python package, validated data contracts,
 a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
 The video extra adds PyAV/FFmpeg decoding and H.264 export, OpenCV preview,
 metadata, original frame timestamps, and temporal selection. The detector extra
 adds YOLO11n and ByteTrack with CPU inference, IDs, trajectories, and annotated
-exports. SQLite jobs and analytics arrive in later waves. No HTTP upload,
+exports. Finite line counting adds directional events and media-time aggregates.
+SQLite jobs and zone analytics arrive in later waves. No HTTP upload,
 worker, or database is implemented yet.
 
 ## Requirements
@@ -193,7 +194,7 @@ Planning documentation is in Portuguese. Code, API, CLI, and UI use English.
 
 ## Next implementation step
 
-Continue with [Wave 4 — Lines, direction, and counting](docs/agentic/tasks/wave-4-counting.md).
+Continue with [Wave 5 — Zones, dwell time, and heatmaps](docs/agentic/tasks/wave-5-zones-heatmaps.md).
 The delivery order is Python core, scientific evaluation, then web.
 
 
@@ -215,3 +216,22 @@ IDs reset per run; histories are bounded, complete observations stream to disk.
 Buffer is measured in processed frames, including empty frames. Class is fixed
 at the first detection per ID; association remains class agnostic.
 See [tracking contracts, limits, and smoke commands](docs/tracking.md).
+
+
+## Line counting (Wave 4)
+
+```bash
+.venv/bin/traffic-video process input.mp4 --model yolo11n-coco \
+  --checkpoint checkpoints/yolo11n.pt --tracker bytetrack-default \
+  --counting-config examples/counting/lines.json --output-dir artifacts/counting-run
+.venv/bin/python scripts/smoke_counting.py --source data/vehicles.mp4 \
+  --checkpoint checkpoints/yolo11n.pt --output-dir artifacts/counting-smoke
+```
+
+Normalized finite lines, perpendicular hysteresis, stable sides, minimum track
+observations, and explicit frame/time gaps govern crossing. Events count once
+per run/line/ID/direction and export to crossing_events.csv; media-time windows
+to crossing_windows.csv. The video displays oriented lines and directional totals.
+See [counting contracts and explicit example preparation](docs/counting.md).
+The small real traffic check is a development sanity check with visual labels,
+not an independent benchmark. ROI and heatmaps begin in Wave 5.
