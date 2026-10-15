@@ -1,7 +1,7 @@
 """Domain errors shared by the CLI and future worker."""
 
+from vision.contracts.errors import VisionError
 
-class VideoError(Exception):
-    def __init__(self, code: str, message: str) -> None:
-        super().__init__(message)
-        self.code = code
+
+class VideoError(VisionError):
+    """Video-specific expected failure."""
