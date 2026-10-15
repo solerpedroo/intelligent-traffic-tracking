@@ -1,0 +1,9 @@
+{
+  "lines": [{"line_id": "approach", "start": [0.1, 0.625], "end": [0.445, 0.625]}],
+  "hysteresis_px": 3.0,
+  "min_observations": 3,
+  "stable_observations": 2,
+  "max_gap_frames": 1,
+  "max_gap_s": 0.5,
+  "window_s": 2.0
+}
