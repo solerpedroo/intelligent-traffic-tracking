@@ -3,6 +3,8 @@
 from collections import deque
 from dataclasses import dataclass
 
+from vision.pipeline.schemas import LIFETIME_COLUMNS, TRAJECTORY_COLUMNS
+
 
 @dataclass
 class _History:
@@ -14,33 +16,8 @@ class _History:
 
 
 class TrackHistoryManager:
-    trajectory_fields = (
-        "run_id",
-        "video_id",
-        "frame_index",
-        "timestamp_s",
-        "track_id",
-        "class_id",
-        "confidence",
-        "x1",
-        "y1",
-        "x2",
-        "y2",
-        "bottom_center_x",
-        "bottom_center_y",
-    )
-    lifetime_fields = (
-        "run_id",
-        "video_id",
-        "track_id",
-        "class_id",
-        "start_s",
-        "last_seen_s",
-        "observed_span_s",
-        "observations",
-        "closure_reason",
-        "analysis_eligible",
-    )
+    trajectory_fields = TRAJECTORY_COLUMNS
+    lifetime_fields = LIFETIME_COLUMNS
 
     def __init__(
         self, run_id, video_id, max_points, trajectory_rows, lifetime_rows, min_observations=3
