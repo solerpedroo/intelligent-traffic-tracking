@@ -25,9 +25,9 @@ jobs:
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: "0.13.1"
-      - run: uv sync --locked --extra api --python ${{ matrix.python }}
-      - run: .venv/bin/ruff check vision backend
-      - run: .venv/bin/ruff format --check vision backend
+      - run: uv sync --locked --extra api --extra video --python ${{ matrix.python }}
+      - run: .venv/bin/ruff check vision backend scripts
+      - run: .venv/bin/ruff format --check vision backend scripts
       - run: .venv/bin/pytest
 
   package:
@@ -46,12 +46,20 @@ jobs:
         working-directory: /tmp
         run: |
           /tmp/traffic-core/bin/python -I - <<'PY'
+          import contextlib
           import importlib.util
+          import io
+          import json
           from vision.contracts import Detection, FramePacket, ProcessingConfig, RunManifest
           from vision.configs import load_catalog
+          from vision.pipeline.cli import main
           assert load_catalog().models == ()
-          for name in ("fastapi", "uvicorn", "torch", "cv2"):
+          for name in ("fastapi", "uvicorn", "torch", "cv2", "av"):
               assert importlib.util.find_spec(name) is None, name
+          error = io.StringIO()
+          with contextlib.redirect_stderr(error):
+              assert main(["capabilities"]) == 2
+          assert json.loads(error.getvalue())["error_code"] == "missing_video_extra"
           PY
 
   frontend:
