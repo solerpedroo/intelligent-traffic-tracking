@@ -1,9 +1,10 @@
 # Dados e anotações — plano inicial
 
 Atualizado em 2026-10-15. A Onda 1 identifica fontes, permissões publicadas e
-protocolo de preparação. Não foram baixados vídeos reais, aceitos contratos de
-acesso ou produzidas anotações reais nesta etapa. Fixtures sintéticas verificam
-software; não são benchmark científico ou evidência de qualidade em trânsito.
+protocolo de preparação. Na Onda 1 não foram baixados vídeos reais nem aceitos
+contratos de acesso. A Onda 4 acrescentou um exemplo público local de crossing,
+com anotação visual de desenvolvimento, documentado ao final. Fixtures e piloto
+não são benchmark científico nem evidência de qualidade geral em trânsito.
 
 ## Fonte selecionada para o primeiro piloto
 
@@ -99,3 +100,33 @@ HOTA/IDF1/ID switches confirmados com referência adequada, nunca apenas com IDs
 - Antes da Onda 7: GT convertido e validado, split de teste congelado, tolerâncias
   e classes definidas. Se faltar referência, bloquear o gate científico e
   apresentar demos apenas como qualitativas.
+
+## Piloto local de crossing — Onda 4
+
+Em 2026-10-15 foi obtido localmente o exemplo público
+[VEHICLES publicado pelo Supervision](https://supervision.roboflow.com/latest/assets/),
+[arquivo de vídeo](https://media.roboflow.com/supervision/video-examples/vehicles.mp4).
+Essa é uma amostra de desenvolvimento adicional; SDD e seus splits planejados
+continuam pendentes, sem substituição pelo exemplo.
+
+- Fonte: 35.345.757 bytes, 3840×2160, 25 fps, 538 frames;
+  SHA-256 `ac81100d9310bd4e9c02bc0b13b6492781d009742ced347766b2601be3c44ad4`.
+- Auditoria visual local: câmera fixa sobre rodovia, dois sentidos de tráfego;
+  150 primeiros frames derivados para 1280×720 sem alterar cadência, seis segundos.
+  Não afirmar densidade física, cobertura geral de classes ou qualidade MOT.
+- Segmento apenas na pista de aproximação; três veículos observados atravessando,
+  dois carros e um caminhão. Rótulos visuais pelo agente em
+  [manual-events.json](../examples/counting/manual-events.json); endpoints e controles
+  em [lines.json](../examples/counting/lines.json). Frente do carro branco parcialmente
+  ocluída, intervalo temporal mais amplo. Não há IDs anotados de referência MOT.
+- Download/derivação explícitos por scripts/smoke_counting.py; hashes efetivos de
+  fonte/derivação/anotação/config em provenance.json. Eventos matched por classe,
+  linha, sentido e intervalo visual, sem tuning posterior neste piloto.
+- A documentação pública oferece o asset para exemplos; uma licença específica
+  do vídeo não foi estabelecida nesta sessão. Não atribuir automaticamente a
+  licença do código Supervision ao conteúdo. Manter fonte, derivados e thumbnails
+  locais, ignorados pelo Git; redistribuição/uso de portfólio exige auditoria dos
+  direitos. Não aceitar termos em nome do usuário nem inferir licença irrestrita.
+- Este piloto permite verificar o fluxo real de crossing; não satisfaz o gate
+  científico de dados/GT/splits da Onda 7. Nenhum resultado de acurácia geral ou
+  ID switch confirmado decorre dos três eventos. Ver [contratos](counting.md).
