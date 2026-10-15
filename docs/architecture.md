@@ -1,6 +1,6 @@
 # Arquitetura — fundação executável
 
-Estado: ondas 0–3. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
+Estado: ondas 0–4. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
 ADR-007 para vídeo e timestamps.
 Escopo futuro: [plano de implementação](implementation-plan.md).
 
@@ -190,3 +190,17 @@ resolvida; CSV separa estados perdidos de observações confirmadas.
 
 [Tracking](tracking.md) descreve parâmetros, classe inicial fixa, buffer em frames,
 VFR, confirmação, censura temporal e arquivos. Não há contagem de crossing ou ROI.
+
+
+## Linhas e contagem da Onda 4
+
+`vision/geometry/` converte segmentos normalizados e calcula distância assinada,
+centro inferior e interseção finita. `vision/counting/lines.py` implementa lados
+estáveis, histerese, lacunas e flags por sentido, com estado limitado aos IDs vivos.
+`CrossingSink` persiste eventos e agrega uma janela de mídia por vez; summary
+mantém totais por linha/classe/sentido. Configuração resolvida integra o manifest.
+
+`process --counting-config` ativa a contagem após ByteTrack e antes do overlay.
+CSV, vídeo e metadata compartilham o mesmo run_id. [counting.md](counting.md)
+descreve coordenadas, confirmação, limites, exemplos e evidências. Ainda não há
+ROI, permanência, heatmaps, editor web ou reidentificação de veículos.
