@@ -35,6 +35,7 @@ def prepare_example(path: Path) -> Path:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--tracker", choices=["bytetrack-default"])
     parser.add_argument("--checkpoint", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     source = parser.add_mutually_exclusive_group(required=True)
@@ -71,13 +72,27 @@ def main():
         source_video,
         output,
         checkpoint=args.checkpoint,
-        config=ProcessingConfig(video_id="detector-smoke", detector_model_id="yolo11n-coco"),
+        config=ProcessingConfig(
+            video_id="detector-smoke",
+            detector_model_id="yolo11n-coco",
+            tracker_config_id=args.tracker,
+        ),
     )
     manifest = RunManifest.model_validate_json((output / "manifest.json").read_text())
     assert manifest.detector is not None and manifest.finished_at is not None
     assert result["selected_frames"] == 4
     if args.download_example:
         assert result["detector"]["class_observations"].get("bus", 0) > 0
+    if args.tracker:
+        import csv
+
+        with (output / "trajectories.csv").open() as file:
+            points = list(csv.DictReader(file))
+        assert points, "Real YOLO + ByteTrack produced no confirmed tracks"
+        first_ids = {p["track_id"] for p in points if p["frame_index"] == "0"}
+        last_ids = {p["track_id"] for p in points if p["frame_index"] == "3"}
+        assert first_ids & last_ids, "No ID persisted across the repeated still fixture"
+        assert manifest.tracker is not None
     write_json(args.output_dir / "smoke-report.json", result)
     print(json.dumps(result, indent=2))
 
