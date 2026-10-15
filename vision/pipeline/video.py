@@ -4,7 +4,7 @@ import csv
 import hashlib
 import json
 from collections import Counter
-from contextlib import ExitStack, closing
+from contextlib import ExitStack, closing, contextmanager
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -19,6 +19,13 @@ from vision.contracts.errors import VisionError
 from vision.contracts.run import ModelReference
 from vision.detectors.base import DetectorAdapter
 from vision.pipeline.manifest import make_manifest
+from vision.pipeline.schemas import (
+    DETECTIONS_COLUMNS,
+    EXPORT_SCHEMA_VERSION,
+    FRAMES_COLUMNS,
+    TIMINGS_COLUMNS,
+    TRACKS_COLUMNS,
+)
 from vision.trackers.base import TrackerAdapter
 from vision.video import VideoError, VideoLimits, VideoReader, VideoWriter, probe_video
 from vision.video.capabilities import video_capabilities
@@ -36,6 +43,37 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _video_warning(code, message, artifact):
+    return {"code": code, "message": message, "artifact": artifact}
+
+
+@contextmanager
+def _annotated_writer(path, width, height, fps, end_s, warnings):
+    """Yield a writer, or None when the annotated MP4 cannot be opened.
+
+    Finalize errors are warnings. Numeric publication continues without that file.
+    """
+    try:
+        writer = VideoWriter(path, width, height, fps, end_s=end_s)
+        writer.__enter__()
+    except VideoError as error:
+        warnings.append(_video_warning(error.code, str(error), "video.mp4"))
+        yield None
+        return
+    try:
+        yield writer
+    except BaseException as error:
+        writer.__exit__(type(error), error, error.__traceback__)
+        raise
+    else:
+        try:
+            writer.__exit__(None, None, None)
+        except VideoError as error:
+            if not writer.abandoned:
+                writer.abandon()
+            warnings.append(_video_warning(error.code, str(error), "video.mp4"))
 
 
 def process_video(
@@ -62,8 +100,6 @@ def process_video(
     tracker: TrackerAdapter | None = None
     counter = sink = None
     zones = heatmap = None
-    if not config.render_annotated_video:
-        raise VideoError("unsupported_config", "This pipeline requires video export")
     model = load_catalog().get_model(config.detector_model_id) if config.detector_model_id else None
     if model is not None:
         selected_classes = model.resolve_classes(config.detector.classes)
@@ -75,6 +111,8 @@ def process_video(
             raise VisionError("missing_checkpoint", "Provide a verified local checkpoint")
     elif detector is not None:
         raise VisionError("unsupported_config", "Injected detector requires a catalog model ID")
+    warnings = []
+    writer = None
     limits = limits or VideoLimits()
     metadata = probe_video(input_path, limits)
     output_dir = output_dir.expanduser().resolve()
@@ -111,6 +149,7 @@ def process_video(
             output_dir / "config.json",
             {
                 "schema_version": "1.0",
+                "export_schema_version": EXPORT_SCHEMA_VERSION,
                 "processing": config.model_dump(mode="json"),
                 "limits": limits.model_dump(mode="json"),
                 "timestamp_policy": "explicit_cfr"
@@ -121,22 +160,26 @@ def process_video(
                 "environment": video_capabilities(),
             },
         )
+        reference = None
+        class_mapping = ()
         if model is not None:
             reference = ModelReference(
                 model_id=model.model_id,
                 checkpoint_sha256=model.checkpoint_sha256,
                 implementation_version=model.implementation_version,
             )
-            manifest = make_manifest(
-                uuid4().hex,
-                config.video_id,
-                input_hash,
-                config,
-                reference,
-                config.detector.device,
-                tuple((c.id, c.name) for c in model.classes),
-            )
-            write_json(output_dir / "manifest.json", manifest.model_dump(mode="json"))
+            class_mapping = tuple((c.id, c.name) for c in model.classes)
+        manifest = make_manifest(
+            uuid4().hex,
+            config.video_id,
+            input_hash,
+            config,
+            reference,
+            config.detector.device if model is not None else "unused",
+            class_mapping,
+        )
+        write_json(output_dir / "manifest.json", manifest.model_dump(mode="json"))
+        if model is not None:
             if detector is None:
                 from vision.detectors.yolo import UltralyticsDetector
 
@@ -175,10 +218,7 @@ def process_video(
                     rows.writerow(fields)
                     return rows
 
-                rows = csv_output(
-                    "frames.csv",
-                    ["frame_index", "timestamp_s", "timestamp_source", "export_timestamp_s"],
-                )
+                rows = csv_output("frames.csv", FRAMES_COLUMNS)
                 if config.analytics.zones:
                     from vision.analytics.zones import ZoneAnalytics
                     from vision.contracts import ZoneEvent, ZoneVisit
@@ -237,23 +277,7 @@ def process_video(
                 if tracker is not None:
                     from vision.trackers.history import TrackHistoryManager
 
-                    track_rows = csv_output(
-                        "tracks.csv",
-                        [
-                            "run_id",
-                            "video_id",
-                            "frame_index",
-                            "timestamp_s",
-                            "track_id",
-                            "class_id",
-                            "state",
-                            "confidence",
-                            "x1",
-                            "y1",
-                            "x2",
-                            "y2",
-                        ],
-                    )
+                    track_rows = csv_output("tracks.csv", TRACKS_COLUMNS)
                     trajectory_rows = csv_output(
                         "trajectories.csv", TrackHistoryManager.trajectory_fields
                     )
@@ -270,48 +294,27 @@ def process_video(
                     )
                 detection_rows = timing_rows = None
                 if detector is not None:
-                    detection_rows = csv_output(
-                        "detections.csv",
-                        [
-                            "run_id",
-                            "video_id",
-                            "frame_index",
-                            "timestamp_s",
-                            "class_id",
-                            "class_name",
-                            "confidence",
-                            "x1",
-                            "y1",
-                            "x2",
-                            "y2",
-                        ],
+                    detection_rows = csv_output("detections.csv", DETECTIONS_COLUMNS)
+                    timing_rows = csv_output("timings.csv", TIMINGS_COLUMNS)
+                if config.render_annotated_video:
+                    writer = stack.enter_context(
+                        _annotated_writer(
+                            output_dir / "video.mp4.partial",
+                            metadata.width,
+                            metadata.height,
+                            fps,
+                            config.end_s,
+                            warnings,
+                        )
                     )
-                    timing_rows = csv_output(
-                        "timings.csv",
-                        [
-                            "frame_index",
-                            "timestamp_s",
-                            "decode_ms",
-                            "preprocessing_ms",
-                            "predict_ms",
-                            "inference_ms",
-                            "postprocessing_ms",
-                            "tracking_ms",
-                            "counting_ms",
-                            "analytics_ms",
-                            "render_ms",
-                            "encode_submit_ms",
-                        ],
+                else:
+                    warnings.append(
+                        _video_warning(
+                            "annotated_video_skipped",
+                            "Annotated video was not requested; numeric exports stay valid",
+                            "video.mp4",
+                        )
                     )
-                writer = stack.enter_context(
-                    VideoWriter(
-                        output_dir / "video.mp4.partial",
-                        metadata.width,
-                        metadata.height,
-                        fps,
-                        end_s=config.end_s,
-                    )
-                )
                 frames = stack.enter_context(closing(iter(reader)))
                 while True:
                     before = perf_counter()
@@ -322,12 +325,21 @@ def process_video(
                     decode_ms = (perf_counter() - before) * 1000
                     totals["decode_ms"] += decode_ms
                     if frame.frame_index == 0:
-                        ok, encoded = cv2.imencode(".png", frame.pixels)
-                        if not ok:
-                            raise VideoError(
-                                "preview_error", "Could not encode first-frame preview"
+                        try:
+                            ok, encoded = cv2.imencode(".png", frame.pixels)
+                            if not ok:
+                                raise VideoError(
+                                    "preview_error", "Could not encode first-frame preview"
+                                )
+                            (output_dir / "preview.png.partial").write_bytes(encoded.tobytes())
+                        except (VideoError, cv2.error, OSError) as error:
+                            warnings.append(
+                                _video_warning(
+                                    getattr(error, "code", "preview_error"),
+                                    str(error),
+                                    "preview.png",
+                                )
                             )
-                        (output_dir / "preview.png.partial").write_bytes(encoded.tobytes())
                     if config.end_s is not None and frame.timestamp_s >= config.end_s:
                         break
                     if frame.timestamp_s < config.start_s:
@@ -336,7 +348,7 @@ def process_video(
                         first_s = frame.timestamp_s
                     last_s = frame.timestamp_s
                     batch = None
-                    render_ms = tracking_ms = counting_ms = analytics_ms = 0.0
+                    render_ms = tracking_ms = counting_ms = analytics_ms = encode_ms = 0.0
                     output_frame = frame
                     if detector is not None:
                         from vision.rendering.detections import render_detections
@@ -396,37 +408,6 @@ def process_video(
                                 heatmap.update(frame, tracks)
                             analytics_ms = (perf_counter() - before) * 1000
                             totals["analytics_ms"] += analytics_ms
-                        before = perf_counter()
-                        if tracker is not None:
-                            from vision.rendering.tracks import render_tracks
-
-                            pixels, drawn = render_tracks(
-                                frame.pixels,
-                                tracks,
-                                history.histories,
-                                detector.class_names,
-                                config.detector.visualization_confidence,
-                            )
-                        else:
-                            pixels, drawn = render_detections(
-                                frame.pixels,
-                                batch.detections,
-                                detector.class_names,
-                                config.detector.visualization_confidence,
-                            )
-                        if counter is not None:
-                            from vision.rendering.lines import render_lines
-
-                            pixels = render_lines(pixels, counter.lines, counter.summary())
-                        if zones is not None:
-                            from vision.rendering.zones import render_zones
-
-                            pixels = render_zones(
-                                pixels, config.analytics.zones, zones.current_occupancy
-                            )
-                        render_ms = (perf_counter() - before) * 1000
-                        drawn_count += drawn
-                        output_frame = replace(frame, pixels=pixels)
                         for key in (
                             "preprocessing_ms",
                             "predict_ms",
@@ -434,11 +415,64 @@ def process_video(
                             "postprocessing_ms",
                         ):
                             totals[key] += getattr(batch, key)
-                        totals["render_ms"] += render_ms
-                    before = perf_counter()
-                    writer.write(output_frame)
-                    encode_ms = (perf_counter() - before) * 1000
-                    totals["encode_submit_ms"] += encode_ms
+                        if writer is not None and not writer.abandoned:
+                            try:
+                                before = perf_counter()
+                                if tracker is not None:
+                                    from vision.rendering.tracks import render_tracks
+
+                                    pixels, drawn = render_tracks(
+                                        frame.pixels,
+                                        tracks,
+                                        history.histories,
+                                        detector.class_names,
+                                        config.detector.visualization_confidence,
+                                    )
+                                else:
+                                    pixels, drawn = render_detections(
+                                        frame.pixels,
+                                        batch.detections,
+                                        detector.class_names,
+                                        config.detector.visualization_confidence,
+                                    )
+                                if counter is not None:
+                                    from vision.rendering.lines import render_lines
+
+                                    pixels = render_lines(pixels, counter.lines, counter.summary())
+                                if zones is not None:
+                                    from vision.rendering.zones import render_zones
+
+                                    pixels = render_zones(
+                                        pixels, config.analytics.zones, zones.current_occupancy
+                                    )
+                                render_ms = (perf_counter() - before) * 1000
+                                drawn_count += drawn
+                                output_frame = replace(frame, pixels=pixels)
+                                totals["render_ms"] += render_ms
+                            except (VideoError, cv2.error, OSError) as error:
+                                writer.abandon()
+                                warnings.append(
+                                    _video_warning(
+                                        getattr(error, "code", "render_error"),
+                                        str(error) or "Annotated overlay failed",
+                                        "video.mp4",
+                                    )
+                                )
+                    if writer is not None and not writer.abandoned:
+                        try:
+                            before = perf_counter()
+                            writer.write(output_frame)
+                            encode_ms = (perf_counter() - before) * 1000
+                            totals["encode_submit_ms"] += encode_ms
+                        except (VideoError, cv2.error, OSError) as error:
+                            writer.abandon()
+                            warnings.append(
+                                _video_warning(
+                                    getattr(error, "code", "encode_error"),
+                                    str(error) or "Annotated video export failed",
+                                    "video.mp4",
+                                )
+                            )
                     if batch is not None:
                         timing_rows.writerow(
                             [
@@ -476,10 +510,20 @@ def process_video(
                         zone_event_rows.writerow(event.model_dump().values())
                 if heatmap is not None:
                     heatmap.finish()
+                    warnings.extend(heatmap.emit.warnings)
             elapsed = perf_counter() - started
+            video_state = "published"
+            if not config.render_annotated_video:
+                video_state = "skipped"
+            elif writer is None or writer.abandoned:
+                video_state = "failed"
+            published_video = video_state == "published"
             summary = {
                 "schema_version": "1.0",
-                "status": "completed",
+                "export_schema_version": EXPORT_SCHEMA_VERSION,
+                "status": "completed_with_warnings" if warnings else "completed",
+                "warnings": warnings,
+                "numeric_results_valid": True,
                 "video_id": config.video_id,
                 "selected_frames": selected,
                 "decoded_frames": reader.decoded_frames,
@@ -493,12 +537,15 @@ def process_video(
                 if config.end_s is not None
                 else "full_decode",
                 "export": {
-                    "codec": "h264",
-                    "pixel_format": "yuv420p",
+                    "state": video_state,
+                    "codec": "h264" if published_video else None,
+                    "pixel_format": "yuv420p" if published_video else None,
                     "audio": False,
-                    "time_base": [1, 90000],
-                    "origin_s": first_s,
-                    "last_frame_duration_source": writer.last_duration_source,
+                    "time_base": [1, 90000] if published_video else None,
+                    "origin_s": first_s if published_video else None,
+                    "last_frame_duration_source": (
+                        writer.last_duration_source if published_video else None
+                    ),
                 },
                 "elapsed_s": elapsed,
                 "timing_scope": "pipeline_before_publication_including_load_and_warmup",
@@ -537,7 +584,11 @@ def process_video(
                     "inference_timing_source": "SDK forward only; warm-up excluded",
                     "encode_timing_scope": "submit; final flush included only in elapsed_s",
                 }
-        names = ["video.mp4", "preview.png", "frames.csv"]
+        names = ["frames.csv"]
+        if summary["export"]["state"] == "published":
+            names.append("video.mp4")
+        if not any(item["artifact"] == "preview.png" for item in warnings):
+            names.append("preview.png")
         if detector is not None:
             names += ["detections.csv", "timings.csv"]
         if tracker is not None:
