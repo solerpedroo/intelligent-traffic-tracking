@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "test_split_frozen": false,
+  "sequences": [
+    {
+      "sequence_id": "SDD-NEXUS-0",
+      "split": "development",
+      "sha256": null,
+      "labels": []
+    },
+    {
+      "sequence_id": "SDD-DEATHCIRCLE-0",
+      "split": "validation",
+      "sha256": null,
+      "labels": []
+    },
+    {
+      "sequence_id": "SDD-GATES-0",
+      "split": "test",
+      "sha256": null,
+      "labels": []
+    }
+  ]
+}
