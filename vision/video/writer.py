@@ -27,6 +27,7 @@ class VideoWriter:
         self._durations: dict[int, float] = {}
         self.frames_written = 0
         self.last_duration_source: str | None = None
+        self._abandoned = False
         self.closed = True
 
     def __enter__(self):
@@ -48,6 +49,15 @@ class VideoWriter:
             raise VideoError("encode_error", f"H.264 encoder unavailable: {error}") from error
         self.closed = False
         return self
+
+    @property
+    def abandoned(self) -> bool:
+        return self._abandoned
+
+    def abandon(self) -> None:
+        """Keep the partial file and skip the final flush."""
+        self._abandoned = True
+        self._pending = None
 
     def _mux(self, packets):
         for packet in packets:
@@ -92,7 +102,7 @@ class VideoWriter:
 
     def __exit__(self, exc_type, exc, traceback):
         try:
-            if exc_type is None and self._pending is not None:
+            if exc_type is None and not self._abandoned and self._pending is not None:
                 duration = self._pending.duration_s
                 self.last_duration_source = (
                     "decoder" if duration is not None else "reported_fps_or_25"
@@ -112,5 +122,5 @@ class VideoWriter:
             try:
                 self._container.close()
             except av.error.FFmpegError as error:
-                if exc_type is None:
+                if exc_type is None and not self._abandoned:
                     raise VideoError("encode_error", f"Could not finalize MP4: {error}") from error
