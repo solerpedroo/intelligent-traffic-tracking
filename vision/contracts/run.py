@@ -21,6 +21,14 @@ class ModelReference(Contract):
     implementation_version: Annotated[str, Field(min_length=1)]
 
 
+class TrackerReference(Contract):
+    tracker_config_id: Identifier
+    implementation: Literal["ultralytics.BYTETracker"] = "ultralytics.BYTETracker"
+    implementation_version: Literal["8.4.177"] = "8.4.177"
+    buffer_unit: Literal["processed_frames"] = "processed_frames"
+    class_policy: Literal["first_detection"] = "first_detection"
+
+
 class RunManifest(Contract):
     schema_version: Literal["1.0"] = "1.0"
     run_id: Identifier
@@ -35,6 +43,7 @@ class RunManifest(Contract):
     hardware: Annotated[str, Field(min_length=1)]
     software: tuple[SoftwareVersion, ...]
     detector: ModelReference | None = None
+    tracker: TrackerReference | None = None
     class_mapping: tuple[tuple[NonNegativeInt, str], ...] = ()
 
     @model_validator(mode="after")
@@ -48,6 +57,8 @@ class RunManifest(Contract):
             raise ValueError("software names must be unique")
         if self.detector is not None and self.detector.model_id != self.config.detector_model_id:
             raise ValueError("detector must match the configured model")
+        if self.tracker and self.tracker.tracker_config_id != self.config.tracker_config_id:
+            raise ValueError("tracker must match the configured preset")
         ids = [item[0] for item in self.class_mapping]
         if len(set(ids)) != len(ids):
             raise ValueError("class_mapping IDs must be unique")
