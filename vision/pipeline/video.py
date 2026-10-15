@@ -52,7 +52,7 @@ def process_video(
 
     Models are loaded once per run. An injected adapter is a test/extension seam;
     its reference and mapping must match the selected catalog entry. Warm-up is
-    excluded from per-frame inference statistics. Tracking is run-local; no object counting.
+    excluded from per-frame inference statistics. Tracking and line counts are run-local.
     """
     started = perf_counter()
     input_path = input_path.expanduser().resolve()
@@ -60,6 +60,7 @@ def process_video(
         load_catalog().get_tracker(config.tracker_config_id) if config.tracker_config_id else None
     )
     tracker: TrackerAdapter | None = None
+    counter = sink = None
     if not config.render_annotated_video:
         raise VideoError("unsupported_config", "This pipeline requires video export")
     model = load_catalog().get_model(config.detector_model_id) if config.detector_model_id else None
@@ -91,6 +92,7 @@ def process_video(
             "inference_ms",
             "postprocessing_ms",
             "tracking_ms",
+            "counting_ms",
             "render_ms",
             "encode_submit_ms",
         ),
@@ -144,6 +146,17 @@ def process_video(
 
             tracker = ByteTrackAdapter(config.tracker)
             tracker.reset()
+        if config.counting.lines:
+            from vision.counting.lines import LineCounter
+
+            counter = LineCounter(
+                config.counting,
+                metadata.width,
+                metadata.height,
+                manifest.run_id,
+                config.video_id,
+                config.tracker.max_live_tracks,
+            )
         with VideoReader(input_path, limits, cfr_fallback_fps=cfr_fallback_fps) as reader:
             fps = cfr_fallback_fps or metadata.reported_fps
             with ExitStack() as stack:
@@ -160,6 +173,16 @@ def process_video(
                     "frames.csv",
                     ["frame_index", "timestamp_s", "timestamp_source", "export_timestamp_s"],
                 )
+                if counter is not None:
+                    from vision.counting.export import CrossingSink
+
+                    sink = CrossingSink(
+                        csv_output("crossing_events.csv", CrossingSink.event_fields),
+                        csv_output("crossing_windows.csv", CrossingSink.window_fields),
+                        config.counting.window_s,
+                        manifest.run_id,
+                        config.video_id,
+                    )
                 history = None
                 track_rows = None
                 if tracker is not None:
@@ -225,6 +248,7 @@ def process_video(
                             "inference_ms",
                             "postprocessing_ms",
                             "tracking_ms",
+                            "counting_ms",
                             "render_ms",
                             "encode_submit_ms",
                         ],
@@ -262,7 +286,7 @@ def process_video(
                         first_s = frame.timestamp_s
                     last_s = frame.timestamp_s
                     batch = None
-                    render_ms = tracking_ms = 0.0
+                    render_ms = tracking_ms = counting_ms = 0.0
                     output_frame = frame
                     if detector is not None:
                         from vision.rendering.detections import render_detections
@@ -305,6 +329,12 @@ def process_video(
                                 )
                             tracking_ms = (perf_counter() - before) * 1000
                             totals["tracking_ms"] += tracking_ms
+                        if counter is not None:
+                            before = perf_counter()
+                            events = counter.update(frame, tracks)
+                            sink.write(frame.timestamp_s, events)
+                            counting_ms = (perf_counter() - before) * 1000
+                            totals["counting_ms"] += counting_ms
                         before = perf_counter()
                         if tracker is not None:
                             from vision.rendering.tracks import render_tracks
@@ -323,6 +353,10 @@ def process_video(
                                 detector.class_names,
                                 config.detector.visualization_confidence,
                             )
+                        if counter is not None:
+                            from vision.rendering.lines import render_lines
+
+                            pixels = render_lines(pixels, counter.lines, counter.summary())
                         render_ms = (perf_counter() - before) * 1000
                         drawn_count += drawn
                         output_frame = replace(frame, pixels=pixels)
@@ -349,6 +383,7 @@ def process_video(
                                 batch.inference_ms,
                                 batch.postprocessing_ms,
                                 tracking_ms,
+                                counting_ms,
                                 render_ms,
                                 encode_ms,
                             ]
@@ -366,6 +401,8 @@ def process_video(
                     raise VideoError("empty_selection", "No frames fall in the selected interval")
                 if history is not None:
                     history.finish()
+                if sink is not None:
+                    sink.flush()
             elapsed = perf_counter() - started
             summary = {
                 "schema_version": "1.0",
@@ -397,6 +434,8 @@ def process_video(
                 if totals["inference_ms"] > 0
                 else None,
             }
+            if counter is not None:
+                summary["counting"] = counter.summary()
             if tracker is not None:
                 summary["tracker"] = {
                     "preset": preset.model_dump(mode="json"),
@@ -426,6 +465,8 @@ def process_video(
             names += ["detections.csv", "timings.csv"]
         if tracker is not None:
             names += ["tracks.csv", "trajectories.csv", "track-lifetimes.csv"]
+        if counter is not None:
+            names += ["crossing_events.csv", "crossing_windows.csv"]
         for name in names:
             (output_dir / f"{name}.partial").replace(output_dir / name)
         if manifest is not None:
