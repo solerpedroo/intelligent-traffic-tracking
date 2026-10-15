@@ -1,0 +1,16 @@
+---
+description: Crossing finito, deduplicação e semântica espacial de ROI.
+globs: "vision/{geometry,counting,analytics,tests}/**/*.py"
+alwaysApply: false
+---
+
+# Geometria e contagem
+
+- Centro inferior da box é a referência inicial; linhas/zonas normalizadas persistidas.
+- Lado A negativo, B positivo pelo produto vetorial da linha start→end.
+- Contar interseção com segmento finito, evidência estável fora da banda e lacuna admissível.
+- Exemplo: cruzar a extensão da linha fora dos endpoints não gera evento.
+- Deduplicar por run_id/line_id/track_id/direction; estado não vaza entre execuções.
+- Testar jitter, banda, ambos os sentidos, horizontais/verticais/diagonais e reset.
+- ROI inclui borda; diferenciar perda de observação de saída geométrica.
+- Não apresentar heatmap de observações como densidade física ou passagem única.
