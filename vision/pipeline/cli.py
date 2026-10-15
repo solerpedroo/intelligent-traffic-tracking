@@ -8,17 +8,35 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from vision.contracts import ProcessingConfig
+from vision.contracts.config import DetectorConfig
+from vision.contracts.errors import VisionError
 
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(prog="traffic-video", description="Local video input and export")
     commands = root.add_subparsers(dest="command", required=True)
     commands.add_parser("capabilities", help="Report actual FFmpeg libraries and encoders")
+    commands.add_parser("models", help="List catalog definitions without loading models")
+    prepare = commands.add_parser(
+        "prepare-model", help="Explicitly download verified model weights"
+    )
+    prepare.add_argument("model_id")
+    prepare.add_argument("--directory", type=Path, default=Path("checkpoints"))
     for name in ("probe", "process"):
         command = commands.add_parser(name)
         command.add_argument("input", type=Path)
         command.add_argument("--limits", type=Path, help="JSON override of VideoLimits")
         if name == "process":
+            command.add_argument("--model", help="Catalog model ID; omitted means copy-only")
+            command.add_argument("--checkpoint", type=Path, help="Local verified checkpoint")
+            command.add_argument("--confidence", type=float)
+            command.add_argument("--iou", type=float)
+            command.add_argument("--image-size", type=int)
+            command.add_argument("--classes", nargs="+")
+            command.add_argument("--device")
+            command.add_argument("--visualization-confidence", type=float)
+            command.add_argument("--warmup-frames", type=int)
+            command.add_argument("--threads", type=int)
             command.add_argument("--output-dir", type=Path, required=True)
             command.add_argument("--video-id", default="local-video")
             command.add_argument("--start-s", type=float, default=0.0)
@@ -34,7 +52,28 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
-        from vision.video import VideoError, VideoLimits, probe_video
+        if args.command in {"models", "prepare-model"}:
+            from vision.configs import load_catalog
+
+            catalog = load_catalog()
+            if args.command == "models":
+                print(catalog.model_dump_json(indent=2))
+            else:
+                from vision.detectors.checkpoint import prepare_checkpoint
+
+                model = catalog.get_model(args.model_id)
+                path = prepare_checkpoint(model, args.directory)
+                print(
+                    json.dumps(
+                        {
+                            "model_id": model.model_id,
+                            "checkpoint": str(path),
+                            "sha256": model.checkpoint_sha256,
+                        }
+                    )
+                )
+            return 0
+        from vision.video import VideoLimits, probe_video
         from vision.video.capabilities import video_capabilities
 
         if args.command == "capabilities":
@@ -50,8 +89,29 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 from vision.pipeline.video import process_video
 
+                options = {
+                    name: getattr(args, name)
+                    for name in (
+                        "confidence",
+                        "iou",
+                        "image_size",
+                        "device",
+                        "visualization_confidence",
+                        "warmup_frames",
+                        "threads",
+                    )
+                    if getattr(args, name) is not None
+                }
+                if args.classes is not None:
+                    options["classes"] = tuple(args.classes)
+                if args.model is None and (options or args.checkpoint is not None):
+                    raise VisionError("unsupported_config", "Detector options require --model")
                 config = ProcessingConfig(
-                    video_id=args.video_id, start_s=args.start_s, end_s=args.end_s
+                    video_id=args.video_id,
+                    start_s=args.start_s,
+                    end_s=args.end_s,
+                    detector_model_id=args.model,
+                    detector=DetectorConfig(**options),
                 )
                 result = process_video(
                     args.input,
@@ -59,17 +119,20 @@ def main(argv: list[str] | None = None) -> int:
                     config=config,
                     limits=limits,
                     cfr_fallback_fps=args.cfr_fallback_fps,
+                    checkpoint=args.checkpoint,
                 )
         print(json.dumps(result, indent=2, allow_nan=False))
         return 0
     except ModuleNotFoundError as error:
-        if error.name not in {"av", "cv2"}:
+        if error.name not in {"av", "cv2", "torch", "ultralytics", "torchvision"}:
             raise
         payload = {
-            "error_code": "missing_video_extra",
-            "error": "Install the project's video extra",
+            "error_code": "missing_video_extra"
+            if error.name in {"av", "cv2"}
+            else "missing_detector_extra",
+            "error": "Install the required video/detector extra",
         }
-    except (OSError, ValidationError, VideoError) as error:
+    except (OSError, ValidationError, VisionError) as error:
         payload = {"error_code": getattr(error, "code", "invalid_input"), "error": str(error)}
     except KeyboardInterrupt:
         payload = {"error_code": "cancelled", "error": "Processing interrupted"}
