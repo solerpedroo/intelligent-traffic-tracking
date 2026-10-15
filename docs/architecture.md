@@ -1,6 +1,6 @@
 # Arquitetura — fundação executável
 
-Estado: ondas 0–2. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
+Estado: ondas 0–3. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
 ADR-007 para vídeo e timestamps.
 Escopo futuro: [plano de implementação](implementation-plan.md).
 
@@ -22,7 +22,7 @@ segundos e aborta a requisição ao desmontar. O build não depende da API ativa
 Fluxo local existente: CLI → probe → decode sequencial → seleção temporal →
 detector opcional → preview/MP4/CSV/JSON. Fluxo futuro: worker → mesmo pipeline → tracker
 → geometria/eventos → exports; API com SQLite e storage local; workspace web.
-Não há worker, banco, upload HTTP ou tracking nas ondas 0–2.
+Não há worker, banco ou upload HTTP. Tracking entra na Onda 3.
 
 ## Contratos internos
 
@@ -177,3 +177,16 @@ e do exemplo de smoke estão no [inventário](model-inventory.md). O smoke usa u
 imagem repetida e não constitui avaliação científica de vídeos reais. A suíte
 leve é independente dos pesos; `-m detector` é opt-in e falha se faltarem assets.
 Um job manual de CI permite executar esse smoke explicitamente com downloads.
+
+
+## ByteTrack e trajetórias da Onda 3
+
+`vision/trackers/base.py` define TrackerAdapter. ByteTrackAdapter implementa a
+associação real do SDK fixado e valida sequência/reset/limites. TrackHistoryManager
+mantém buffers recentes limitados e grava trajetórias e lifetimes por streaming.
+O pipeline avança o tracker em frames vazios, preserva detecções fracas e renderiza
+somente estados observados. Manifest inclui referência do tracker e configuração
+resolvida; CSV separa estados perdidos de observações confirmadas.
+
+[Tracking](tracking.md) descreve parâmetros, classe inicial fixa, buffer em frames,
+VFR, confirmação, censura temporal e arquivos. Não há contagem de crossing ou ROI.
