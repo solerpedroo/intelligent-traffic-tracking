@@ -1,0 +1,16 @@
+---
+description: Evidência, dados de referência e reprodutibilidade dos experimentos.
+globs: "{vision/evaluation,vision/datasets,vision/tests,experiments}/**/*"
+alwaysApply: false
+---
+
+# Validação científica
+
+- Separar detecção, tracking, contagem e desempenho; usar GT adequado a cada métrica.
+- HOTA/IDF1 e ID switches confirmados exigem identidades anotadas.
+- Exemplo: vídeo sem GT não recebe HOTA=0; recebe not_evaluated e motivo.
+- Splits por sequência/câmera/cena; não ajustar thresholds no teste congelado.
+- Fixar tolerância de evento e pareamento um a um antes de comparar resultados.
+- Manifest inclui versões, hashes de vídeo/pesos/GT, hardware, config e estado Git.
+- CI leve usa fixtures pequenas; smoke real separado tem evidência e motivo se pulado.
+- Reportar resultados reais por sequência, falhas e limitações; não apenas a melhor execução.
