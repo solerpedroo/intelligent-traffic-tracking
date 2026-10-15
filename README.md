@@ -3,14 +3,14 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–2 implemented: foundation, video CLI, and verified YOLO detection.
+**Status:** Waves 0–3 implemented: foundation, video CLI, YOLO detection, and ByteTrack.
 
 The foundation includes an independent Python package, validated data contracts,
 a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
 The video extra adds PyAV/FFmpeg decoding and H.264 export, OpenCV preview,
 metadata, original frame timestamps, and temporal selection. The detector extra
-adds YOLO11n with CPU inference and annotated exports. ByteTrack,
-SQLite jobs, and analytics arrive in later waves. No HTTP upload, tracking,
+adds YOLO11n and ByteTrack with CPU inference, IDs, trajectories, and annotated
+exports. SQLite jobs and analytics arrive in later waves. No HTTP upload,
 worker, or database is implemented yet.
 
 ## Requirements
@@ -193,5 +193,25 @@ Planning documentation is in Portuguese. Code, API, CLI, and UI use English.
 
 ## Next implementation step
 
-Continue with [Wave 3 — ByteTrack and trajectories](docs/agentic/tasks/wave-3-tracking.md).
+Continue with [Wave 4 — Lines, direction, and counting](docs/agentic/tasks/wave-4-counting.md).
 The delivery order is Python core, scientific evaluation, then web.
+
+
+## ByteTrack tracking (Wave 3)
+
+After installing the detector extra and preparing the local checkpoint:
+
+```bash
+.venv/bin/traffic-video process input.mp4 --model yolo11n-coco \
+  --checkpoint checkpoints/yolo11n.pt --tracker bytetrack-default \
+  --output-dir artifacts/tracking-run
+.venv/bin/pytest -m 'tracker or detector'
+```
+
+Optional `--tracker-config params.json` merges validated overrides with the catalog
+preset. Outputs add tracks.csv (observed/lost states), trajectories.csv (observed
+bottom centers), and track-lifetimes.csv (observed spans and analysis eligibility).
+IDs reset per run; histories are bounded, complete observations stream to disk.
+Buffer is measured in processed frames, including empty frames. Class is fixed
+at the first detection per ID; association remains class agnostic.
+See [tracking contracts, limits, and smoke commands](docs/tracking.md).
