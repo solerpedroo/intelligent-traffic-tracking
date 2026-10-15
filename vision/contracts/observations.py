@@ -136,3 +136,5 @@ class ZoneEvent(Contract):
     class_id: NonNegativeInt
     zone_id: Identifier
     event_type: Literal["zone_enter", "zone_exit", "observation_lost", "boundary_censored"]
+    visit_id: NonNegativeInt | None = None
+    reason: str | None = None
