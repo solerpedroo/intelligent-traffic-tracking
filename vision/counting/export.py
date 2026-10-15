@@ -3,21 +3,12 @@
 from collections import Counter
 from decimal import Decimal
 
-from vision.contracts import CrossingEvent
+from vision.pipeline.schemas import CROSSING_EVENTS_COLUMNS, CROSSING_WINDOWS_COLUMNS
 
 
 class CrossingSink:
-    event_fields = tuple(CrossingEvent.model_fields)
-    window_fields = (
-        "run_id",
-        "video_id",
-        "window_start_s",
-        "window_end_s",
-        "line_id",
-        "class_id",
-        "direction",
-        "count",
-    )
+    event_fields = CROSSING_EVENTS_COLUMNS
+    window_fields = CROSSING_WINDOWS_COLUMNS
 
     def __init__(self, event_rows, window_rows, window_s, run_id, video_id):
         self.event_rows, self.window_rows = event_rows, window_rows
