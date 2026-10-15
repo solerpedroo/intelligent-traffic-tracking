@@ -58,7 +58,8 @@ referenciar a anterior sem apagar seu histórico.
 - Onda 0: resolvido por ADR-006; versões exatas nos lockfiles.
 - Onda 1: implementação técnica resolvida por ADR-007 e plano de dados por ADR-008;
   aquisição/auditoria e congelamento dos splits reais seguem pendentes antes da avaliação.
-- Ondas 2–3: checkpoint, ByteTrack concreto, thresholds e classe da track.
+- Onda 2: checkpoint/contrato resolvidos por ADR-009. Onda 3 ainda deve
+  definir ByteTrack concreto, alinhar thresholds e estabilizar classe da track.
 - Ondas 4–5: tamanho mínimo, banda, lacuna máxima e regras temporais de dwell.
 - Onda 7: formatos GT, tolerâncias de pareamento e agregações científicas.
 - Onda 9: migrações, retenção/cotas, heartbeat, recuperação e contrato HTTP final.
@@ -136,3 +137,31 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
 - Fixtures CFR/VFR são próprias e sintéticas, sem valor como benchmark real.
   GT de crossing começa na Onda 4; conversão/avaliação MOT na 7.
 - Referência: [plano, termos publicados e gates](../datasets.md).
+
+## ADR-009 — Detector baseline e dependências opcionais
+
+- Data: 2026-10-15. Estado: aceito para implementação da Onda 2.
+- Decisão: YOLO11n COCO da release oficial de assets v8.3.0, checkpoint com
+  SHA-256 fixado no catálogo. Instalar Ultralytics headless 8.4.177 e PyTorch
+  CPU via extra detector, sem substituir OpenCV headless por variante GUI.
+- O catálogo publica disponibilidade de configuração, não presume arquivo
+  baixado. Preparação é explícita; inferência exige checkpoint local e hash
+  correto antes de carregar pesos. Nada de download implícito ou arquivo arbitrário.
+- Preprocessamento letterbox quadrado explícito em BGR uint8, com metadados
+  afins; YOLO devolve boxes na tela letterboxed e o adapter faz uma única
+  inversão para coordenadas originais. Validar orig_shape do resultado SDK.
+- Confidence de entrada 0.1 e visualização 0.25 como pontos de partida não
+  otimizados. Exportar todas as detecções aceitas, não só as desenhadas.
+  Parâmetros do ByteTrack ainda não existem; compatibilidade final é gate da Onda 3.
+- CPU é o baseline empacotado. Código aceita CUDA somente se runtime disponível,
+  com sincronização para medição; não alegar teste GPU em ambiente sem GPU.
+- Medir preprocessamento, chamada de predict, normalização, inferência reportada
+  pelo SDK e renderização separadamente, com warm-up fora das estatísticas.
+- Fonte/licença: documentação e pesos Ultralytics sob AGPL-3.0 ou Enterprise;
+  uso local de pesquisa não define LICENSE do monorepo nem autoriza redistribuição
+  de exemplos de terceiros. Registrar termos e fontes no inventário técnico.
+- Referências: [YOLO11](https://docs.ultralytics.com/models/yolo11/),
+  [predict](https://docs.ultralytics.com/modes/predict/),
+  [headless](https://docs.ultralytics.com/quickstart/),
+  [licenças](https://www.ultralytics.com/license),
+  [PyTorch CPU/uv](https://docs.astral.sh/uv/guides/integration/pytorch/).
