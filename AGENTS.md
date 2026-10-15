@@ -2,7 +2,7 @@
 
 ## Estado e início de sessão
 
-Fundação da Onda 0 concluída e validada localmente. Próxima: Onda 1. Consulte o estado
+Ondas 0–1 concluídas e validadas localmente. Próxima: Onda 2. Consulte o estado
 atual em [docs/agentic/workboard.md](docs/agentic/workboard.md).
 
 1. Leia [o escopo](docs/project-scope.md), [a análise](docs/scope-analysis.md)
@@ -61,9 +61,9 @@ substitui documentação ou que trabalho não commitado não existe.
 
 ## Validação e encerramento
 
-Comandos verificados estão no README. Preparar com `uv sync --locked --extra api`.
-Python: `.venv/bin/ruff check vision backend`, `.venv/bin/ruff format --check
-vision backend` e `.venv/bin/pytest`. Frontend: em `frontend/`, `npm ci`,
+Comandos verificados estão no README. Preparar com `uv sync --locked --extra api --extra video`.
+Python: `.venv/bin/ruff check vision backend scripts`, `.venv/bin/ruff format --check
+vision backend scripts` e `.venv/bin/pytest`. Frontend: em `frontend/`, `npm ci`,
 `npm run lint`, `npm run typecheck`, `npm run test` e `npm run build`.
 `typecheck` gera tipos Next.js antes do tsc. Biome cuida do lint/formatação web.
 Execute os checks exigidos pelo cartão e pela área alterada.
@@ -72,4 +72,6 @@ Feche uma onda apenas com critérios e evidências completos.
 
 Não iniciar fine-tuning, outro tracker, RTSP, múltiplas câmeras, identificação
 pessoal ou deploy em nuvem como consequência implícita de uma tarefa do MVP.
-Próxima tarefa: [wave-1-video-cli](docs/agentic/tasks/wave-1-video-cli.md).
+CLI de vídeo: `.venv/bin/traffic-video capabilities`, `probe` e `process`;
+ver README e docs/architecture.md para PTS, limites e artefatos parciais.
+Próxima tarefa: [wave-2-detection](docs/agentic/tasks/wave-2-detection.md).
