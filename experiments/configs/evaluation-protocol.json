@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "detection_iou_start": 0.5,
+  "detection_iou_stop": 0.95,
+  "detection_iou_step": 0.05,
+  "counting_tolerance_s": 0.5,
+  "ignored_class_ids": [],
+  "mot_similarity_iou": 0.5,
+  "mot_preprocessing": "disabled",
+  "average_precision": "coco_101_point"
+}
