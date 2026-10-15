@@ -55,10 +55,40 @@ referenciar a anterior sem apagar seu histórico.
 
 ## Decisões pendentes
 
-- Onda 0: versões suportadas, gerenciadores, lockfiles e schemas iniciais.
+- Onda 0: resolvido por ADR-006; versões exatas nos lockfiles.
 - Onda 1: decode/PTS/VFR, codecs, limites de entrada, dados e splits.
 - Ondas 2–3: checkpoint, ByteTrack concreto, thresholds e classe da track.
 - Ondas 4–5: tamanho mínimo, banda, lacuna máxima e regras temporais de dwell.
 - Onda 7: formatos GT, tolerâncias de pareamento e agregações científicas.
 - Onda 9: migrações, retenção/cotas, heartbeat, recuperação e contrato HTTP final.
 - Onda 12: LICENSE e eventual plano de hospedagem, após verificar termos reais.
+
+## ADR-006 — Toolchain e contratos da fundação
+
+- Data: 2026-10-15. Estado: aceito para implementação da Onda 0.
+- Decisão: baseline Python 3.12 (compatibilidade com o ecossistema científico),
+  uv e uv.lock; Node 24 LTS, npm e package-lock.json. Pacote raiz instala
+  `vision`; extra `api` instala o backend, sem acoplar o núcleo ao FastAPI.
+- Frontend usa Biome para lint/formatação, TypeScript e Vitest.
+- Contratos usam Pydantic v2 congelado, campos extras rejeitados e números
+  finitos; NumPy somente para o contrato de frame. Frames são objetos internos
+  não serializáveis em JSON; snapshots de configuração usam coleções imutáveis.
+- Catálogo JSON empacotado começa vazio; nenhum ID/checkpoint fictício. Health
+  indica liveness do serviço, não disponibilidade de modelos ou worker.
+- Configuração do servidor via TRAFFIC_*; CORS explícito e restrito aos origins
+  locais por padrão. Cliente futuro usa NEXT_PUBLIC_API_URL, validada em sua fronteira.
+- Consequência: CI testa Python 3.12 e 3.14, instalação do núcleo sem extras API,
+  API com health e shell Next.js. Modelos, vídeo, persistência e filas entram
+  somente nas ondas responsáveis. Hashes/versões exatas ficam nos lockfiles.
+
+### Evidência de compatibilidade da toolchain
+
+O ambiente inicial possui Python 3.14 e Node 24; uv provisionou Python 3.12
+sem alterar o Python do sistema. O cliente de testes exigido pelo Starlette
+resolvido é httpx2; a dependência de desenvolvimento acompanha essa API.
+Biome substitui o conjunto ESLint/Next que trouxe um advisory transitivo sem
+correção disponível na versão consultada. Não se usa override incompatível
+nem se ignora esse advisory. O contrato de checks (lint, tipos, testes e build)
+permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-started/installation),
+[uv](https://docs.astral.sh/uv/concepts/projects/sync/),
+[Biome](https://biomejs.dev/installation/quick-start/).
