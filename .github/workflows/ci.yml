@@ -31,7 +31,8 @@ jobs:
       - run: uv sync --locked --extra video --extra detector --python 3.12
       - run: .venv/bin/traffic-video prepare-model yolo11n-coco --directory checkpoints
       - run: .venv/bin/python scripts/smoke_detector.py --checkpoint checkpoints/yolo11n.pt --output-dir artifacts/cpu-smoke --download-example
-      - run: .venv/bin/pytest -m detector
+      - run: .venv/bin/pytest -m "detector or tracker"
+      - run: .venv/bin/python scripts/smoke_detector.py --checkpoint checkpoints/yolo11n.pt --image data/detector-smoke-bus.jpg --tracker bytetrack-default --output-dir artifacts/tracking-smoke
   python:
     name: Python ${{ matrix.python }}
     runs-on: ubuntu-latest
