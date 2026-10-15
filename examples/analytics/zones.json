@@ -1,0 +1,16 @@
+{
+  "zones": [
+    {"zone_id": "approaching", "vertices": [[0.0, 0.45], [0.46, 0.45], [0.46, 0.85], [0.0, 0.85]]},
+    {"zone_id": "departing", "vertices": [[0.53, 0.5], [1.0, 0.5], [1.0, 1.0], [0.53, 1.0]]}
+  ],
+  "max_gap_s": 0.5,
+  "heatmap": {
+    "enabled": true,
+    "class_ids": [2, 7],
+    "grid_width": 128,
+    "grid_height": 72,
+    "window_s": 2.0,
+    "sigma_cells": 1.0,
+    "weighting": "observations"
+  }
+}
