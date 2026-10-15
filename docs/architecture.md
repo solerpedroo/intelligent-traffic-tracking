@@ -1,6 +1,6 @@
 # Arquitetura — fundação executável
 
-Estado: ondas 0–1. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
+Estado: ondas 0–2. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
 ADR-007 para vídeo e timestamps.
 Escopo futuro: [plano de implementação](implementation-plan.md).
 
@@ -20,9 +20,9 @@ API indisponível não impede renderizar a página. O cliente tem timeout de cin
 segundos e aborta a requisição ao desmontar. O build não depende da API ativa.
 
 Fluxo local existente: CLI → probe → decode sequencial → seleção temporal →
-preview/MP4/CSV/JSON. Fluxo futuro: worker → mesmo pipeline → detector → tracker
+detector opcional → preview/MP4/CSV/JSON. Fluxo futuro: worker → mesmo pipeline → tracker
 → geometria/eventos → exports; API com SQLite e storage local; workspace web.
-Não há worker, banco, upload HTTP ou inferência nas ondas 0–1.
+Não há worker, banco, upload HTTP ou tracking nas ondas 0–2.
 
 ## Contratos internos
 
@@ -44,8 +44,8 @@ Nenhum desses contratos implementa os respectivos algoritmos.
 
 `ProcessingConfig` v1.0 fixa stride 1, trecho válido e referências opcionais a
 modelo/tracker. `None` significa não configurado; não há modelo implicitamente
-disponível. Thresholds, geometrias e validação de disponibilidade entram com os
-adapters das ondas responsáveis. Alterações incompatíveis exigem nova versão;
+disponível sem arquivo local verificado. DetectorConfig agora define thresholds,
+classes, dispositivo e warm-up; geometria de linhas/zonas entra nas ondas responsáveis. Alterações incompatíveis exigem nova versão;
 expansões futuras precisam documentar compatibilidade/migração.
 
 `RunManifest` registra configuração, SHA-256 da entrada, horário com timezone,
@@ -57,16 +57,17 @@ incluindo totais desconhecidos; transições/persistência entram na Onda 9.
 ## Catálogo
 
 `vision/configs/catalog.json` é carregado por `importlib.resources`, também
-quando instalado a partir de wheel fora do repositório. Modelos e presets
-estão vazios. O loader não acessa rede, não baixa pesos nem importa frameworks.
-O schema será expandido quando houver um adapter real; não há endpoint de
-catálogo nesta onda.
+quando instalado a partir de wheel fora do repositório. Há uma definição de
+YOLO11n COCO, com hash, origem, termos e 80 classes. Presets de tracker continuam
+vazios. O loader não acessa rede, não baixa pesos nem importa frameworks.
+Disponibilidade local não é inferida do catálogo. CLI models expõe as definições;
+não há endpoint HTTP de catálogo nesta onda.
 
 ## Ambiente e ferramentas
 
 Baseline Python 3.12; compatibilidade da fundação testada também em 3.14.
-Isso não garante compatibilidade futura de YOLO/PyTorch em ambas as versões;
-a Onda 2 deve validar essa matriz. `uv.lock` fixa a resolução; `uv sync --locked
+Os testes de integração CPU de YOLO/PyTorch também são explícitos e registrados
+no cartão da Onda 2; isso não comprova compatibilidade de um futuro ambiente CUDA. `uv.lock` fixa a resolução; `uv sync --locked
 --extra api --extra video` instala desenvolvimento, API e vídeo. `uv sync --locked
 --no-default-groups` instala só o núcleo. Extras não são persistidos por `uv`;
 comandos que sincronizam o ambiente devem incluir os extras `api` e/ou `video` quando necessários.
@@ -144,3 +145,35 @@ Validação de um recorte termina no prefixo necessário e não certifica o rest
 do vídeo. `summary.input_validation` explicita essa limitação. O throughput
 inclui probe/hash/decode/preview/encode/CSV antes da publicação final; FPS de
 inferência é `null`. São tempos observados daquela execução, não benchmark YOLO.
+
+## Detector e renderização da Onda 2
+
+`vision/detectors/base.py` define DetectorAdapter/DetectionBatch, sem Torch ou
+Ultralytics. A implementação é importada apenas quando há model_id selecionado.
+`DetectorConfig` tem defaults canônicos consumidos também pelo catálogo; nomes
+de classes são resolvidos contra as classes reais antes de executar o modelo.
+Modelos e APIs não entram na inicialização do health.
+
+`prepare-model` baixa somente o asset oficial catalogado, limitado pelo tamanho
+e verificado por SHA-256; publicação é atômica sem substituir arquivos existentes.
+Inferência usa arquivo local já preparado, SDK offline e sem autoinstalação.
+Configurações do SDK ficam junto aos checkpoints, fora do Git e da pasta pessoal.
+A configuração SDK e número de threads são globais ao processo: usar uma instância
+por execução em processo dedicado, conforme o futuro worker de um job ativo.
+
+Pipeline opcional de detecção gera boxes/scores no vídeo e detections.csv com
+coordenadas originais. Visualização não elimina observações de baixa confiança
+do CSV. O preview permanece o primeiro frame original sem anotação. Não há
+IDs, trajetórias, contagem de objetos únicos ou eventos de cruzamento nesta onda.
+
+Manifest inicial/final registra pesos, class mapping completo, configuração,
+seed, versões instaladas, hardware e estado Git. Campos adicionais são aditivos
+ao schema 1.0; históricos sem esses campos ainda usam defaults. O processo
+carrega um detector e aquece antes do primeiro frame medido. Timings CSV são
+incrementais; agregados usam acumuladores, sem armazenar todos os frames/tempos.
+
+Detalhes de transformações, semântica dos tempos, fonte/hash/licença do modelo
+e do exemplo de smoke estão no [inventário](model-inventory.md). O smoke usa uma
+imagem repetida e não constitui avaliação científica de vídeos reais. A suíte
+leve é independente dos pesos; `-m detector` é opt-in e falha se faltarem assets.
+Um job manual de CI permite executar esse smoke explicitamente com downloads.
