@@ -1,7 +1,7 @@
 # Arquitetura — fundação executável
 
-Estado: ondas 0–5. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
-ADR-007 para vídeo e timestamps.
+Estado: ondas 0–6. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
+ADR-007 para vídeo e timestamps e ADR-013 para exports.
 Escopo futuro: [plano de implementação](implementation-plan.md).
 
 ## Componentes existentes
@@ -219,4 +219,20 @@ Ambos usam os centros inferiores das tracks observadas e PTS originais.
 Overlay de ROI mostra ocupação atual; visitas não são objetos físicos únicos.
 [Contratos e limites](zones-heatmaps.md) descrevem tempos, perdas, unidades e
 reprodução. O núcleo usa só NumPy/Pydantic; smoothing e previews usam o extra
-video. Consolidação de artefatos e falhas de render será a Onda 6.
+video.
+
+## Exports da Onda 6
+
+`vision/pipeline/schemas.py` fixa o schema `1.0`: ordem das colunas e unidades
+(segundos da mídia original, pixels originais, milissegundos, observações por
+célula, permanência só de intervalos consecutivos observados). `config.json`
+guarda a configuração resolvida, limites, política de tempo e hash da entrada.
+`manifest.json` existe também em execução sem detector; o dispositivo fica
+`unused` quando não há modelo. `summary.json` é o último JSON de sucesso.
+
+O MP4 anotado é H.264/yuv420p, sem áudio, time base 1/90000, origem no primeiro
+frame selecionado. `--no-annotated-video` publica só os números e avisa
+`annotated_video_skipped`. Falha de desenho, codec ou preview não promove o
+arquivo visual e não apaga CSV/NPZ já calculados. Falha do núcleo escreve
+`failure.json` e não publica summary de sucesso. O layout esperado, sem binários
+versionados, está em [examples/sample_results/README.md](../examples/sample_results/README.md).
