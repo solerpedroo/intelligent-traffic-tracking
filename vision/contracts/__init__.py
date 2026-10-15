@@ -1,6 +1,7 @@
 """Public internal data contracts, independent of transport and model libraries."""
 
 from vision.contracts.config import ProcessingConfig, TrackerConfig
+from vision.contracts.counting import CountingConfig, LineConfig
 from vision.contracts.observations import (
     CrossingEvent,
     Detection,
@@ -19,6 +20,8 @@ from vision.contracts.run import (
 
 __all__ = [
     "CrossingEvent",
+    "CountingConfig",
+    "LineConfig",
     "Detection",
     "FramePacket",
     "ModelReference",
