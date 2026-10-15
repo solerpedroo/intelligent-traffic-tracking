@@ -55,6 +55,11 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--start-s", type=float, default=0.0)
             command.add_argument("--end-s", type=float)
             command.add_argument(
+                "--no-annotated-video",
+                action="store_true",
+                help="Skip annotated MP4 and keep numeric exports",
+            )
+            command.add_argument(
                 "--cfr-fallback-fps",
                 type=float,
                 help="Explicit CFR assertion; overrides every input timestamp",
@@ -139,6 +144,7 @@ def main(argv: list[str] | None = None) -> int:
                     video_id=args.video_id,
                     start_s=args.start_s,
                     end_s=args.end_s,
+                    render_annotated_video=not args.no_annotated_video,
                     detector_model_id=args.model,
                     tracker_config_id=args.tracker,
                     tracker=tracker_config,
