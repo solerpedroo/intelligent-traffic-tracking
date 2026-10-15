@@ -1,13 +1,13 @@
 # Workboard
 
-Estado inicial em 2026-10-15: Ondas 0–5 concluídas e validadas localmente; ondas 6–12 propostas.
+Estado inicial em 2026-10-15: Ondas 0–6 concluídas e validadas localmente; ondas 7–12 propostas.
 Fonte única de progresso por onda. Evidências ficam nos cartões.
 
 ## Próxima tarefa
 
-Onda 6 — Exports e integridade do núcleo. Evidências das ondas 0–5 nos cartões;
-CI remota não executada nesta sessão. Pilotos locais de crossing e ROI/heatmaps validados como integração;
-dados/GT/splits para avaliação científica permanecem pendentes conforme docs/datasets.md.
+Onda 7 — Avaliação e benchmark. Evidências das ondas 0–6 nos cartões.
+CI remota não executada nesta sessão. Dados/GT/splits para avaliação científica
+permanecem pendentes conforme docs/datasets.md; a Onda 7 não fecha sem referência real.
 
 ## Ondas
 
@@ -17,7 +17,7 @@ dados/GT/splits para avaliação científica permanecem pendentes conforme docs/
 - **3 — ByteTrack e trajetórias:** `done`; responsável Codex; [cartão](tasks/wave-3-tracking.md).
 - **4 — Linhas, direção e contagem:** `done`; responsável Codex; [cartão](tasks/wave-4-counting.md).
 - **5 — ROI, permanência e heatmaps:** `done`; responsável Codex; [cartão](tasks/wave-5-zones-heatmaps.md).
-- **6 — Exports e integridade do núcleo:** `proposed`; responsável não atribuído; [cartão](tasks/wave-6-exports.md).
+- **6 — Exports e integridade do núcleo:** `done`; responsável Cursor; [cartão](tasks/wave-6-exports.md).
 - **7 — Avaliação e benchmark:** `proposed`; responsável não atribuído; [cartão](tasks/wave-7-evaluation.md).
 - **8 — Experimentos A/B/C:** `proposed`; responsável não atribuído; [cartão](tasks/wave-8-experiments.md).
 - **9 — API, worker e SQLite:** `proposed`; responsável não atribuído; [cartão](tasks/wave-9-jobs-api.md).
