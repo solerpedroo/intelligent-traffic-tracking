@@ -101,6 +101,11 @@ HOTA/IDF1/ID switches confirmados com referência adequada, nunca apenas com IDs
   e classes definidas. Se faltar referência, bloquear o gate científico e
   apresentar demos apenas como qualitativas.
 
+Em 2026-10-15 a Onda 7 entregou conversores, protocolo e métricas separadas.
+O gate continua bloqueado: `experiments/configs/splits.json` segue com
+`test_split_frozen: false` e hashes nulos. Nenhum vídeo real novo foi baixado
+nesta onda. O piloto de vehicles não foi reavaliado como benchmark.
+
 ## Piloto local de crossing — Onda 4
 
 Em 2026-10-15 foi obtido localmente o exemplo público
