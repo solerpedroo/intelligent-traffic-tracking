@@ -15,6 +15,11 @@ on:
         type: boolean
         default: false
 
+      analytics_smoke:
+        description: "Explicitly download traffic example and reconcile ROI/heatmaps on CPU"
+        type: boolean
+        default: false
+
 permissions:
   contents: read
 
@@ -24,7 +29,7 @@ concurrency:
 
 jobs:
   detector:
-    if: github.event_name == 'workflow_dispatch' && (inputs.detector_smoke || inputs.counting_smoke)
+    if: github.event_name == 'workflow_dispatch' && (inputs.detector_smoke || inputs.counting_smoke || inputs.analytics_smoke)
     name: Explicit vision CPU smoke
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -41,6 +46,9 @@ jobs:
       - name: Explicit real traffic counting smoke
         if: inputs.counting_smoke
         run: .venv/bin/python scripts/smoke_counting.py --download-example --checkpoint checkpoints/yolo11n.pt --output-dir artifacts/counting-smoke
+      - name: Explicit real traffic analytics smoke
+        if: inputs.analytics_smoke
+        run: .venv/bin/python scripts/smoke_analytics.py --download-example --checkpoint checkpoints/yolo11n.pt --output-dir artifacts/analytics-smoke
   python:
     name: Python ${{ matrix.python }}
     runs-on: ubuntu-latest
@@ -81,6 +89,10 @@ jobs:
           import json
           from vision.contracts import Detection, FramePacket, ProcessingConfig, RunManifest
           from vision.configs import load_catalog
+          from vision.contracts import AnalyticsConfig, ZoneConfig
+          from vision.analytics.zones import ZoneAnalytics
+          from vision.analytics.heatmaps import HeatmapAccumulator
+          assert ZoneConfig(zone_id="roi", vertices=((0.,0.), (1.,0.), (1.,1.))).zone_id == "roi"
           from vision.contracts import CountingConfig, LineConfig
           from vision.counting.lines import LineCounter
           lines = CountingConfig(lines=(LineConfig(line_id="gate", start=(0., 0.5), end=(1., 0.5)),))
