@@ -1,0 +1,40 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Frontend
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Local configuration and generated runtime data
+.env
+.env.*
+!.env.example
+!.env.*.example
+/data/
+/artifacts/
+/checkpoints/
+/runtime/
+*.pt
+*.onnx
+*.engine
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.sqlite*
+*.log
+.DS_Store
+
+# Small authorized fixtures can be explicitly added with git add -f.
