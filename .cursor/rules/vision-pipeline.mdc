@@ -1,0 +1,16 @@
+---
+description: Contratos temporais e isolamento do núcleo de visão computacional.
+globs: "vision/**/*.py"
+alwaysApply: false
+---
+
+# Núcleo temporal
+
+- Não importar FastAPI/React; CLI e worker usam o mesmo pipeline.
+- Frames BGR uint8, boxes xyxy em pixels originais; documentar conversões do detector.
+- Preservar frame_index original e timestamp da mídia; não presumir CFR em vídeo VFR.
+- Resetar tracker/contador/ROI por execução e limitar históricos em RAM.
+- Preservar detecções de baixa confiança necessárias ao ByteTrack.
+- Separar observações atuais de tracks preditas/perdidas.
+- Exemplo: frame_stride=2 não autoriza dividir o tempo de permanência por dois.
+- Registrar configurações resolvidas, pesos/hash e convenções no manifest.
