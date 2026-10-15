@@ -15,6 +15,7 @@ import pytest
 
 from scripts.generate_sample import generate_sample
 from vision.contracts import FramePacket, ProcessingConfig
+from vision.contracts.errors import VisionError
 from vision.pipeline.video import process_video
 from vision.video import VideoError, VideoLimits, VideoReader, VideoWriter, probe_video
 from vision.video import reader as reader_module
@@ -361,7 +362,7 @@ def test_encoder_failure_is_explicit_and_writer_is_closed(tmp_path):
 
 
 def test_pipeline_rejects_future_model_configuration(sample, tmp_path):
-    with pytest.raises(VideoError, match="not available in Wave 1"):
+    with pytest.raises(VisionError, match="Unknown catalog model"):
         process_video(
             sample,
             tmp_path / "future",
