@@ -1,0 +1,6 @@
+{
+  "max_bytes": 536870912,
+  "max_duration_s": 300.0,
+  "max_pixels": 2073600,
+  "max_frames": 36000
+}
