@@ -4,6 +4,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
+from vision.contracts.analytics import AnalyticsConfig
 from vision.contracts.base import Confidence, Contract, Identifier, Seconds
 from vision.contracts.counting import CountingConfig
 
@@ -61,6 +62,7 @@ class ProcessingConfig(Contract):
     detector: DetectorConfig = Field(default_factory=DetectorConfig)
     tracker_config_id: Identifier | None = None
     tracker: TrackerConfig = Field(default_factory=TrackerConfig)
+    analytics: AnalyticsConfig = Field(default_factory=AnalyticsConfig)
     counting: CountingConfig = Field(default_factory=CountingConfig)
     frame_stride: Annotated[int, Field(ge=1, le=1)] = 1
     render_annotated_video: bool = True
@@ -73,6 +75,10 @@ class ProcessingConfig(Contract):
             raise ValueError("end_s must be greater than start_s")
         if self.tracker_config_id is not None and self.detector_model_id is None:
             raise ValueError("tracker_config_id requires detector_model_id")
+        if (
+            self.analytics.zones or self.analytics.heatmap.enabled
+        ) and self.tracker_config_id is None:
+            raise ValueError("Zone analytics and heatmaps require tracker_config_id")
         if self.counting.lines and self.tracker_config_id is None:
             raise ValueError("Counting lines require tracker_config_id")
         if self.tracker_config_id and self.detector.confidence > self.tracker.track_low_thresh:
