@@ -8,6 +8,7 @@ from vision.contracts import ZoneEvent, ZoneVisit
 from vision.contracts.errors import VisionError
 from vision.geometry import bottom_center
 from vision.geometry.polygons import contains
+from vision.pipeline.schemas import ZONE_OCCUPANCY_COLUMNS
 
 
 @dataclass
@@ -39,15 +40,7 @@ class ZoneBatch:
 
 
 class ZoneAnalytics:
-    occupancy_fields = (
-        "run_id",
-        "video_id",
-        "frame_index",
-        "timestamp_s",
-        "zone_id",
-        "class_id",
-        "observed_count",
-    )
+    occupancy_fields = ZONE_OCCUPANCY_COLUMNS
 
     def __init__(
         self, config, width, height, class_ids, run_id, video_id, emit_visit, max_live_tracks=4000
