@@ -1,0 +1,16 @@
+---
+description: Fronteiras HTTP, ciclo de jobs e integridade de artefatos.
+globs: "backend/**/*.py"
+alwaysApply: false
+---
+
+# API e worker
+
+- Rotas validam e traduzem contratos; processamento roda em worker separado.
+- Criar job retorna 202; claim é transacional e cancelamento ocorre em ponto seguro.
+- Persistir progresso/heartbeat; definir recuperação de crash e novo ID no reprocessamento.
+- Validar conteúdo, codec, tamanho, duração, geometria e parâmetros no servidor.
+- Resolver downloads por nomes permitidos; nunca concatenar caminho arbitrário do cliente.
+- Publicar artefatos finais atomicamente e identificar resultados parciais.
+- Exemplo: falha do encoder preserva CSV, mas informa vídeo indisponível.
+- Limpeza não remove jobs ativos; não expor frames, credenciais ou payloads em logs.
