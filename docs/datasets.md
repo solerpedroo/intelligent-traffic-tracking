@@ -101,10 +101,11 @@ HOTA/IDF1/ID switches confirmados com referência adequada, nunca apenas com IDs
   e classes definidas. Se faltar referência, bloquear o gate científico e
   apresentar demos apenas como qualitativas.
 
-Em 2026-10-15 a Onda 7 entregou conversores, protocolo e métricas separadas.
-O gate continua bloqueado: `experiments/configs/splits.json` segue com
-`test_split_frozen: false` e hashes nulos. Nenhum vídeo real novo foi baixado
-nesta onda. O piloto de vehicles não foi reavaliado como benchmark.
+Em 2026-10-16 o baseline passou a usar o MOT15 oficial, não o Stanford Drone
+Dataset. O zip local tem SHA-256
+`4197530e8bff30fc9fb55565280b8235ab3cc9d16a2eca3ba95e7d5dcae3a5b4`.
+O teste congelado é `MOT15-PETS09-S2L1`. Os resultados estão em
+[evaluation.md](evaluation.md). O piloto de vehicles não entrou nesse teste.
 
 Na mesma data, a página oficial
 [cvgl.stanford.edu/projects/uav_data](https://cvgl.stanford.edu/projects/uav_data/)
