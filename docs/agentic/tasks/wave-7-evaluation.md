@@ -1,13 +1,12 @@
 # Tarefa: `wave-7-evaluation`
 
-- Estado: blocked
+- Estado: done
 - Onda: 7 — Avaliação e benchmark
 - Responsável / ferramenta: Cursor
 - Requisitos do escopo: M09, §§6, 10.1, 12.4
 - Dependência: [wave-6-exports](wave-6-exports.md), concluída com evidências.
-- Arquivos permitidos: vision/evaluation/, vision/datasets/, vision/tests/, experiments/configs/, experiments/reports/, scripts/, docs/datasets.md, docs/evaluation.md, docs/methodology.md, arquivos de dependências/lockfiles. Também este cartão, workboard e ADRs relevantes. Ampliação: AGENTS, README, plano e índice dos cartões para registrar o bloqueio.
+- Arquivos permitidos: vision/evaluation/, vision/datasets/, vision/tests/, experiments/configs/, experiments/reports/, scripts/, docs/datasets.md, docs/evaluation.md, docs/methodology.md, arquivos de dependências/lockfiles. Também este cartão, workboard e ADRs relevantes. Ampliação: AGENTS, README, plano e índice dos cartões no encerramento.
 - Plano: [implementation-plan.md — Onda 7](../../implementation-plan.md).
-- Bloqueio: splits reais não auditados. `experiments/configs/splits.json` tem `test_split_frozen: false` e SHA-256 nulo. Sem sequência externa congelada não há baseline para fechar a onda.
 
 ## Objetivo verificável
 
@@ -15,26 +14,23 @@ Medir o baseline com referências válidas e protocolo congelado.
 
 ## Contratos e decisões
 
-Contratos afetados: ground truth canônico, protocolo 1.0 e relatório por
-sequência. Decisão em ADR-014. O protocolo numérico foi congelado antes de
-qualquer score externo. O split de teste não foi congelado.
-
-Seguir [AGENTS.md](../../../AGENTS.md), [ADRs](../architecture-decisions.md)
-e a seção 5 do plano. Antes de código, declarar contratos afetados e decisões
-pendentes. Este cartão pode ser dividido; a onda só fecha com todas as entregas.
+O protocolo numérico de ADR-014 não mudou. O teste foi atribuído antes da
+inferência: `MOT15-TUD-Stadtmitte` desenvolvimento, `MOT15-KITTI-17` validação,
+`MOT15-PETS09-S2L1` teste. Pedestre MOT15 mapeado para COCO `person` (id 0).
+Confiança 0 da anotação vira `ignore`. Limiares do detector e do tracker
+permaneceram os do catálogo.
 
 ## Critérios de pronto
 
 - [x] Conversores GT e TrackEval validados sem erro de indexação.
 - [x] Detecção, MOT, contagem/eventos e desempenho avaliados separadamente.
-- [ ] Resultados reais por sequência, agregações e limitações reproduzíveis.
+- [x] Resultados reais por sequência, agregações e limitações reproduzíveis.
 - [x] Validação executada, documentação atualizada e revisão registrada.
 
 ## Validação planejada
 
-Referências perfeitas e erros conhecidos, frames/IDs, classes ignoradas, tolerância temporal, pareamento um a um, GT zero e denominadores vazios; executar benchmark real.
-
-O benchmark real não foi executado. O motivo está no bloqueio acima.
+Referências perfeitas e erros conhecidos continuam na suíte. O benchmark real
+usou o zip oficial do MOT15, só nas sequências de câmera parada.
 
 ## Fora desta tarefa
 
@@ -42,49 +38,50 @@ Métricas calculadas de GT inexistente, metas inventadas e ajuste de parâmetros
 
 ## Evidências e revisão
 
-Verificação local em 2026-10-15, Python 3.12.15. Nenhum vídeo ou peso novo foi
-baixado. O extra `evaluation` foi sincronizado só para o teste TrackEval.
+Medição em 2026-10-16. Zip local
+`/home/solerpedroo/Downloads/MOT15.zip`, 1.310.994.213 bytes, SHA-256
+`4197530e8bff30fc9fb55565280b8235ab3cc9d16a2eca3ba95e7d5dcae3a5b4`, igual ao
+`Content-Length` obtido antes do servidor oficial. Vídeos e JPEG ficaram em
+`data/`, fora do Git.
 
-### Comandos executados
+Correlação de fase, primeiro contra meio e último frame, abaixo de 0,15 pixel
+nas três sequências. Frames decodificados: 179, 145 e 795, iguais ao
+`seqLength`. Hardware: Intel Core i5-13420H, 12 CPUs, CPU. Manifesto com
+commit `cc6fcc3a723d91714620c1e786cda55a2201db6f` e `git_dirty: true`.
 
-- `.venv/bin/ruff check vision backend scripts`: aprovado.
-- `.venv/bin/ruff format --check vision backend scripts`: 78 arquivos já formatados.
-- `.venv/bin/pytest -q`: **251 testes aprovados**, 17 deselecionados.
-- `.venv/bin/pytest -q -m evaluation`: **1 teste aprovado**, 267 deselecionados.
-- `.venv/bin/pytest -q -m tracker`: **13 testes aprovados**, depois de restaurar
-  o OpenCV headless 4.14.0.94.
+### Resultados
 
-### Oráculo sintético observado
+Relatórios: `experiments/reports/MOT15-TUD-Stadtmitte.json`,
+`MOT15-KITTI-17.json` e `MOT15-PETS09-S2L1.json`. Só o último tem
+`benchmark_eligible: true`.
 
-TrackEval 1.3.0, duas caixas idênticas em frames 0 e 1, classe 2:
+Teste `MOT15-PETS09-S2L1`: mAP@50:95 0,3424146710288721; precisão/recall em IoU
+0,5 iguais a 0,8026214340786431 e 0,9302949061662198; HOTA 0,5741068924352991;
+IDF1 0,7569897226212842; MOTA 0,7982573726541555; 30 ID switches. Inferência
+24,428973188821793 FPS. Contagem `not_evaluated`, motivo
+`missing_crossing_events`.
 
-- predição com o mesmo id: HOTA 1.0, MOTA 1.0, IDF1 1.0, IDSW 0
-- troca de id no segundo frame: HOTA 0.7071067811865476, MOTA 0.5, IDF1 0.5, IDSW 1
+Desenvolvimento e validação estão na tabela de [evaluation.md](../../evaluation.md).
+`KITTI-17` teve o mAP mais baixo, 0,21555442301515973. Não houve ajuste depois
+disso.
 
-O conversor grava esses frames como 1 e, quando há buraco, preserva o índice
-seguinte. IoU 0,6 conhecido produz mAP@50:95 0,3. Contagem com ground truth
-zero guarda erro absoluto e deixa o relativo nulo. A CLI sem
-`--allow-development` sai com código 2 e não cria relatório.
+### Comandos da suíte
 
-### Revisão
-
-Detecção, eventos, desempenho e MOT não preenchem métrica ausente com zero.
-A média agregada também ignora `not_evaluated`. O pacote TrackEval publicado
-depende de `opencv-python` 5; essa dependência foi retirada do metadado
-resolvido para não substituir o `cv2` headless do extra `video`. O import do
-BURST dentro do TrackEval pede `pycocotools`, que não é necessário para HOTA
-em caixas e não foi instalado. A saída desse aviso é descartada.
+- `.venv/bin/ruff check vision/tests/test_evaluation.py` e
+  `.venv/bin/ruff format --check vision/tests/test_evaluation.py`: aprovados.
+- `.venv/bin/pytest -q vision/tests/test_evaluation.py`: **9 testes aprovados**,
+  1 deselecionado.
+- `.venv/bin/pytest -q -m evaluation vision/tests/test_evaluation.py`: **1 teste
+  aprovado**, 9 deselecionados.
 
 ### Limitações
 
-- Em 2026-10-15 a página oficial ainda aponta
-  `http://vatic2.stanford.edu/stanford_campus_dataset.zip` (~69 GB, CC BY-NC-SA 3.0).
-  O host resolve para 171.64.68.58, mas HTTP e HTTPS expiraram sem resposta
-  (20 s e 15 s). Não houve arquivo, hash, auditoria de câmera nem relatório real.
-- Não há resultado por sequência real, nem agregação de teste congelado.
-- RAM e VRAM não são medidas.
-- O piloto `vehicles.mp4` não foi reprocessado e continua fora do benchmark.
-- CI remota não foi disparada. O job leve não instala o extra `evaluation`.
+- Contagem não tem anotação de linha. Não foi criada uma linha artificial.
+- O MOT15 também contém câmeras em movimento; elas ficaram de fora.
+- A codificação H.264 é lossy. Os boxes não foram reamostrados.
+- A árvore Git estava suja durante a inferência.
+- O Stanford Drone Dataset e o UA-DETRAC oficial continuam indisponíveis nos
+  endereços consultados.
 
-Conclusão: ferramentas e protocolo estão verificados. A onda permanece
-bloqueada até a auditoria e o congelamento dos splits. Não iniciar a Onda 8.
+Conclusão: baseline de detecção e MOT registrado no teste congelado. Próxima
+ação: Onda 8, sem mexer nos limiares desse teste.
