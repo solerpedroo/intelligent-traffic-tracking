@@ -1,12 +1,12 @@
 # Workboard
 
-Estado em 2026-10-16: Ondas 0–9 concluídas. Onda 10 proposta.
+Estado em 2026-10-16: Ondas 0–10 concluídas. Onda 11 proposta.
 Fonte única de progresso por onda. Evidências ficam nos cartões.
 
 ## Próxima tarefa
 
-Onda 10 — workspace web. A API de jobs está em
-[api-contract.md](../api-contract.md). O worker continua um processo separado.
+Onda 11 — analytics e comparação. O workspace está em
+[api-contract.md](../api-contract.md). Gráficos e comparação ficam fora da Onda 10.
 
 ## Ondas
 
@@ -20,7 +20,7 @@ Onda 10 — workspace web. A API de jobs está em
 - **7 — Avaliação e benchmark:** `done`; responsável Cursor; [cartão](tasks/wave-7-evaluation.md).
 - **8 — Experimentos A/B/C:** `done`; responsável Cursor; [cartão](tasks/wave-8-experiments.md).
 - **9 — API, worker e SQLite:** `done`; responsável Cursor; [cartão](tasks/wave-9-jobs-api.md).
-- **10 — Workspace, editor e viewer:** `proposed`; responsável não atribuído; [cartão](tasks/wave-10-web-workspace.md).
+- **10 — Workspace, editor e viewer:** `done`; responsável Cursor; [cartão](tasks/wave-10-web-workspace.md).
 - **11 — Analytics, comparação e metodologia:** `proposed`; responsável não atribuído; [cartão](tasks/wave-11-analytics.md).
 - **12 — Aceitação e portfólio:** `proposed`; responsável não atribuído; [cartão](tasks/wave-12-acceptance.md).
 
