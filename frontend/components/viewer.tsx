@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ButtonLink, buttonClassName } from "@/components/ui/button";
 import {
   ApiError,
@@ -31,31 +31,66 @@ export function Viewer({ jobId }: { jobId: string }) {
   const [classFilter, setClassFilter] = useState("");
   const [trackFilter, setTrackFilter] = useState("");
   const [videoMissing, setVideoMissing] = useState(false);
+  const [trackedJobId, setTrackedJobId] = useState(jobId);
+  const jobIdRef = useRef(jobId);
+  jobIdRef.current = jobId;
+  if (trackedJobId !== jobId) {
+    setTrackedJobId(jobId);
+    setJob(null);
+    setVideo(null);
+    setEvents(null);
+    setTracks(null);
+    setError(null);
+    setClassFilter("");
+    setTrackFilter("");
+    setVideoMissing(false);
+  }
 
   useEffect(() => {
     let active = true;
+    let timer = 0;
+    let finishWait: (() => void) | null = null;
+    const controller = new AbortController();
+    const stopWait = () => {
+      window.clearTimeout(timer);
+      const finish = finishWait;
+      finishWait = null;
+      finish?.();
+    };
     pollUntilTerminal(
       async () => {
-        const next = await fetchJob(jobId);
-        if (active) setJob(next);
+        const next = await fetchJob(jobId, controller.signal);
+        if (active && jobIdRef.current === jobId) setJob(next);
         return next;
       },
       {
         intervalMs: 2000,
-        shouldContinue: () => active,
-        wait: (ms) => new Promise((resolve) => window.setTimeout(resolve, ms)),
+        shouldContinue: () => active && jobIdRef.current === jobId,
+        wait: (ms) =>
+          new Promise((resolve) => {
+            finishWait = () => {
+              finishWait = null;
+              resolve();
+            };
+            timer = window.setTimeout(() => {
+              finishWait = null;
+              resolve();
+            }, ms);
+          }),
       },
     ).catch((reason: unknown) => {
-      if (active && !(reason instanceof DOMException)) {
-        setError(
-          reason instanceof ApiError
-            ? reason.message
-            : "API unavailable — check the local server and API URL.",
-        );
-      }
+      if (!active || jobIdRef.current !== jobId) return;
+      if (reason instanceof DOMException) return;
+      setError(
+        reason instanceof ApiError
+          ? reason.message
+          : "API unavailable — check the local server and API URL.",
+      );
     });
     return () => {
       active = false;
+      controller.abort();
+      stopWait();
     };
   }, [jobId]);
 
@@ -64,26 +99,32 @@ export function Viewer({ jobId }: { jobId: string }) {
     // biome-ignore lint/complexity/useOptionalChain: narrowing requires the null check
     if (!job || job.state !== "completed") return;
     const controller = new AbortController();
+    let cancelled = false;
     Promise.all([
       fetchVideo(job.video_id, controller.signal),
       fetchTable(jobId, "events", controller.signal),
       fetchTable(jobId, "tracks", controller.signal),
     ])
       .then(([nextVideo, nextEvents, nextTracks]) => {
+        if (cancelled || controller.signal.aborted) return;
+        if (jobIdRef.current !== jobId) return;
         setVideo(nextVideo);
         setEvents(nextEvents);
         setTracks(nextTracks);
       })
       .catch((reason: unknown) => {
-        if (!controller.signal.aborted) {
-          setError(
-            reason instanceof ApiError
-              ? reason.message
-              : "API unavailable — check the local server and API URL.",
-          );
-        }
+        if (cancelled || controller.signal.aborted) return;
+        if (jobIdRef.current !== jobId) return;
+        setError(
+          reason instanceof ApiError
+            ? reason.message
+            : "API unavailable — check the local server and API URL.",
+        );
       });
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [job, jobId]);
 
   const visibleEvents = useMemo(
@@ -91,8 +132,7 @@ export function Viewer({ jobId }: { jobId: string }) {
     [events, classFilter, trackFilter],
   );
   const visibleTracks = useMemo(
-    () =>
-      filterRows(tracks?.items ?? [], classFilter, trackFilter).slice(0, 50),
+    () => filterRows(tracks?.items ?? [], classFilter, trackFilter),
     [tracks, classFilter, trackFilter],
   );
   const duration = video?.duration_s ?? maxTimestamp(visibleEvents);
@@ -178,8 +218,8 @@ export function Viewer({ jobId }: { jobId: string }) {
             </ul>
             {events && events.total > events.items.length ? (
               <p>
-                Showing the first {events.items.length} of {events.total}{" "}
-                events.
+                Showing {events.items.length} loaded events of {events.total}.
+                Filters cover the loaded rows only, not the rest of the file.
               </p>
             ) : null}
           </section>
@@ -199,6 +239,8 @@ export function Viewer({ jobId }: { jobId: string }) {
                 onChange={(event) => setTrackFilter(event.target.value)}
               />
             </label>
+            {coverageNote(events, "events")}
+            {coverageNote(tracks, "tracks")}
             <table>
               <caption>
                 Track rows from this job. Boxes stay in original pixels.
@@ -248,6 +290,16 @@ export function Viewer({ jobId }: { jobId: string }) {
         </>
       ) : null}
     </main>
+  );
+}
+
+function coverageNote(page: TablePage | null, noun: string) {
+  if (page == null || page.total <= page.items.length) return null;
+  return (
+    <p>
+      The {noun} filter covers the {page.items.length} loaded rows only, not all{" "}
+      {page.total}.
+    </p>
   );
 }
 
