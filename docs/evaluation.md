@@ -77,6 +77,12 @@ O número de benchmark é só a linha de teste. Os JSON estão em
 `experiments/reports/`. No PETS09, o mAP por escala foi 0,3782068947698728 em
 `medium` e 0,09542668552569529 em `large`; `small` ficou `not_evaluated`.
 
+Os estudos A/B/C estão em [methodology.md](methodology.md). No teste, baixar
+`match_thresh` para 0,6 levou o HOTA a 0,4455 e os ID switches a 137, enquanto
+nas outras duas sequências o HOTA ficou perto do baseline. Desfoque e CRF 40
+não tiveram o mesmo sentido em todas as sequências. Não há afirmação de
+significância.
+
 ## Suíte
 
 A suíte leve não instala TrackEval. O marcador `evaluation` cobre o caso
