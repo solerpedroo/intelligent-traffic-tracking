@@ -1,52 +1,57 @@
-# API — contrato da Onda 0
+# API — contrato da Onda 9
 
-Estado: implementado apenas liveness. O [escopo §7](project-scope.md) descreve
-rotas futuras; não é a lista de endpoints atualmente disponíveis.
+Estado: liveness da Onda 0 mais uploads, jobs e artefatos. A inferência não
+roda dentro do processo HTTP. O worker é outro processo:
+`python -m backend.app.worker`.
 
-## `GET /api/health`
+Erros de produto usam `{"error_code", "error"}`. Paginação usa `limit`
+(1–100, padrão 20) e `offset`.
 
-Sem parâmetros ou corpo. Resposta HTTP 200, `application/json`:
+## Rotas
 
-```json
-{
-  "status": "ok",
-  "service": "intelligent-traffic-tracking-api",
-  "api_version": "v1"
-}
-```
+| Método | Rota | Sucesso |
+| --- | --- | --- |
+| GET | `/api/health` | 200, liveness |
+| POST | `/api/videos` | 201, corpo binário e header `x-filename` |
+| GET | `/api/videos/{video_id}` | 200, metadados |
+| GET | `/api/models` | 200, catálogo sem carregar pesos |
+| POST | `/api/jobs` | 202, `state=queued` |
+| GET | `/api/jobs` | 200, `items` e `total` |
+| GET | `/api/jobs/{job_id}` | 200, progresso |
+| POST | `/api/jobs/{job_id}/cancel` | 200 |
+| GET | `/api/jobs/{job_id}/summary` | 200 só se `completed` |
+| GET | `/api/jobs/{job_id}/events` | 200, CSV de cruzamentos paginado |
+| GET | `/api/jobs/{job_id}/tracks` | 200, CSV de tracks paginado |
+| GET | `/api/jobs/{job_id}/artifacts/{name}` | 200, nome da lista permitida |
+| GET | `/api/experiments` | 200, jobs `completed` |
 
-Indica que o processo HTTP responde. Não testa modelo, checkpoint, worker,
-storage, banco ou GPU. Não carrega `vision`, NumPy, OpenCV ou PyTorch.
+`POST /api/jobs` aceita `video_id`, `detector_model_id`, `tracker_config_id` e
+`render_annotated_video`. Reprocessar cria outro `job_id`.
 
-Schema de resposta é explícito em `backend/app/schemas/health.py`. O cliente
-TypeScript valida os três campos e rejeita resposta HTTP malsucedida, payload
-incompatível ou erro de rede. Timeout de cinco segundos; indisponibilidade é
-exibida no shell sem impedir a renderização do restante da página.
+## Estados
 
-## Endpoints auxiliares
+`queued → running → completed | failed | cancelled`.
 
-- `GET /openapi.json`: schema OpenAPI gerado pelo FastAPI.
-- `GET /docs`: Swagger UI para inspeção manual.
-- `GET /redoc`: visualização alternativa do schema.
+Cancelar `queued` encerra na hora. Cancelar `running` grava o pedido e o
+worker o atende no próximo frame. Um worker morto, com heartbeat mais velho
+que `TRAFFIC_STALE_AFTER_SECONDS` (padrão 30), vira `failed` com
+`worker_interrupted`. Não retoma o meio do vídeo.
 
-As páginas de documentação padrão podem carregar assets externos. Health,
-OpenAPI e a aplicação não dependem desses assets. Rotas de produto ainda não
-implementadas, como `POST /api/jobs`, respondem 404.
+## Arquivos e limites
 
-## CORS e ambiente
+SQLite em `TRAFFIC_DATA_DIR/traffic.sqlite` (padrão `data/`). Vídeos em
+`videos/{id}/source.mp4`. Artefatos em `jobs/{id}/`.
 
-Origins padrão: `http://localhost:3000` e `http://127.0.0.1:3000`.
-Somente método GET e header Accept são permitidos na fundação; sem credentials.
-Origins adicionais vêm de `TRAFFIC_ALLOWED_ORIGINS` (array JSON). Schemes
-HTTP(S), host e porta são aceitos; paths, credenciais, query e fragmentos não.
-Origins não permitidos não recebem `Access-Control-Allow-Origin`.
+Download só aceita um nome da lista interna. `..` e caminhos compostos não
+resolvem arquivo. Upload acima de `TRAFFIC_MAX_UPLOAD_BYTES` (512 MiB) ou da
+cota `TRAFFIC_QUOTA_BYTES` responde 413. Retenção
+`TRAFFIC_RETENTION_SECONDS` apaga jobs terminados; não apaga `queued` nem
+`running`.
 
-Variáveis inválidas impedem a criação da aplicação, em vez de corrigir valores
-silenciosamente. O cliente usa `NEXT_PUBLIC_API_URL`, com fallback local em
-`http://127.0.0.1:8000`. A API não chama o frontend.
+Vídeo que o probe rejeita responde 422 e não fica registrado. Summary de job
+não concluído responde 409. Falha de disco fica `failed`, não `completed`.
 
-## Evolução
+## CORS
 
-Na Onda 9 entram uploads/jobs, paginação, progresso, cancelamento e artefatos.
-Definir schemas, erros e versionamento antes de introduzir essas rotas. O
-`schema_version` dos contratos científicos é independente de `api_version`.
+Métodos GET e POST. Headers `Accept` e `Content-Type`. Origins continuam os
+de `TRAFFIC_ALLOWED_ORIGINS`.
