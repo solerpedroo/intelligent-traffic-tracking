@@ -64,7 +64,8 @@ referenciar a anterior sem apagar seu histórico.
   MOT15; o teste congelado é `MOT15-PETS09-S2L1`.
 - Onda 8: fatores A/B/C fixados em `experiments/configs/wave8-protocol.json`
   antes das execuções. Sem significância e sem ajuste pelo teste.
-- Onda 9: migrações, retenção/cotas, heartbeat, recuperação e contrato HTTP final.
+- Onda 9: resolvida no contrato HTTP atual. Um worker, SQLite, claim
+  transacional, heartbeat e job interrompido vira `failed`.
 - Onda 12: LICENSE e eventual plano de hospedagem, após verificar termos reais.
 
 ## ADR-006 — Toolchain e contratos da fundação
@@ -332,3 +333,15 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
   teste com hash. Desenvolvimento e validação usam `--allow-development`.
   Contagem no MOT15 fica `not_evaluated`. Os números medidos estão em
   [evaluation.md](../evaluation.md).
+
+## ADR-015 — Fila local de jobs (Onda 9)
+
+- Data: 2026-10-16. Estado: aceito.
+- Decisão: SQLite no diretório de dados, um worker e um job ativo. Claim com
+  transação imediata. Criação HTTP responde 202 e não chama o pipeline.
+  Cancelamento de job em execução é lido a cada frame. Crash do worker marca
+  `failed` com `worker_interrupted`; reprocessar cria outro id.
+- Downloads usam lista de nomes. Cota, limite de upload e retenção são
+  configurações `TRAFFIC_*`. Limpeza não remove job `queued` ou `running`.
+- Consequência: não há fila distribuída nem vários workers. O contrato está
+  em [api-contract.md](../api-contract.md).
