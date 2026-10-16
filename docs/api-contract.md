@@ -25,6 +25,7 @@ Erros de produto usam `{"error_code", "error"}`. Paginação usa `limit`
 | GET | `/api/jobs/{job_id}/events` | 200, CSV de cruzamentos paginado |
 | GET | `/api/jobs/{job_id}/tracks` | 200, CSV de tracks paginado |
 | GET | `/api/jobs/{job_id}/artifacts/{name}` | 200, nome da lista permitida |
+| GET | `/api/jobs/{job_id}/heatmaps/{name}` | 200, PNG em `heatmaps/` |
 | GET | `/api/experiments` | 200, jobs `completed` |
 
 `POST /api/jobs` aceita o JSON do `ProcessingConfig`, com `video_id` obrigatório.
@@ -49,7 +50,8 @@ SQLite em `TRAFFIC_DATA_DIR/traffic.sqlite` (padrão `data/`). Vídeos em
 `videos/{id}/source.mp4`. Artefatos em `jobs/{id}/`.
 
 Download só aceita um nome da lista interna. `..` e caminhos compostos não
-resolvem arquivo. Upload acima de `TRAFFIC_MAX_UPLOAD_BYTES` (512 MiB) ou da
+resolvem arquivo. O preview de heatmap só aceita um PNG cujo nome fica
+diretamente em `heatmaps/`. Upload acima de `TRAFFIC_MAX_UPLOAD_BYTES` (512 MiB) ou da
 cota `TRAFFIC_QUOTA_BYTES` responde 413. Retenção
 `TRAFFIC_RETENTION_SECONDS` apaga jobs terminados; não apaga `queued` nem
 `running`.
