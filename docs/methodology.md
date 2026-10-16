@@ -29,7 +29,21 @@ inferência. O Stanford Drone Dataset continua sem arquivo.
 - TrackEval é executado por classe, com pré-processamento MOTChallenge
   desligado, para não tratar carro ou bicicleta como distrator de pedestre.
 
-## Próximo gate
+## Experimentos A/B/C
 
-A Onda 8 pode usar este baseline. Contagem continua sem referência nestas
-sequências. Não ajustar limiar olhando o teste `MOT15-PETS09-S2L1`.
+O protocolo foi gravado em
+[wave8-protocol.json](../experiments/configs/wave8-protocol.json) antes das
+novas execuções. Nenhum limiar foi escolhido depois de ver o teste.
+
+- A altera um fator do ByteTrack por vez: `track_buffer` 10 e 60, `match_thresh`
+  0,6 e 0,9. O detector permanece o YOLO11n do catálogo.
+- B usa faixas fixas de densidade: sequência baixa abaixo de 5 objetos/frame,
+  alta a partir de 8; frame baixo 0–4, médio 5–8, alto 9 ou mais. O MOT15 não
+  tem flag de oclusão, então essa faixa fica `not_evaluated`.
+- C aplica brilho 0,6, desfoque gaussiano com sigma 1,5 px, ruído gaussiano
+  sigma 15 com seeds 0 e 1, e H.264 CRF 40. O ground truth não é deslocado.
+  O ruído é a única condição aleatória e foi repetido nas duas seeds.
+
+Três sequências não sustentam significância. O relatório completo está em
+`experiments/reports/wave8-summary.json` e a figura do teste em
+`experiments/reports/wave8-hota.svg`. Contagem continua sem anotação de linha.
