@@ -96,7 +96,24 @@ export function SelectItem({
   );
 }
 
-const NONE = "__none__";
+const PLACEHOLDER_VALUE = "__select_placeholder__";
+
+function toItemValue(optionValue: string): string {
+  if (
+    optionValue === PLACEHOLDER_VALUE ||
+    optionValue.startsWith(`${PLACEHOLDER_VALUE}:`)
+  ) {
+    return `${PLACEHOLDER_VALUE}:${optionValue}`;
+  }
+  return optionValue === "" ? `${PLACEHOLDER_VALUE}:` : optionValue;
+}
+
+function fromItemValue(itemValue: string): string {
+  if (itemValue === PLACEHOLDER_VALUE) return "";
+  const prefix = `${PLACEHOLDER_VALUE}:`;
+  if (itemValue.startsWith(prefix)) return itemValue.slice(prefix.length);
+  return itemValue;
+}
 
 export function LabeledSelect({
   label,
@@ -111,23 +128,30 @@ export function LabeledSelect({
   options: { value: string; label: string }[];
   placeholder?: string;
 }) {
+  const selectedValue =
+    value === "" && !options.some((option) => option.value === "")
+      ? PLACEHOLDER_VALUE
+      : toItemValue(value);
   return (
     <div className="grid gap-2">
       <span className="label-caps">{label}</span>
       <Select
-        value={value || NONE}
-        onValueChange={(next) => onChange(next === NONE ? "" : next)}
+        value={selectedValue}
+        onValueChange={(next) => onChange(fromItemValue(next))}
       >
         <SelectTrigger aria-label={label}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE}>{placeholder}</SelectItem>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
+          <SelectItem value={PLACEHOLDER_VALUE}>{placeholder}</SelectItem>
+          {options.map((option) => {
+            const itemValue = toItemValue(option.value);
+            return (
+              <SelectItem key={itemValue} value={itemValue}>
+                {option.label}
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
     </div>
