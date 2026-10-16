@@ -453,7 +453,10 @@ def process_video(
                                 drawn_count += drawn
                                 output_frame = replace(frame, pixels=pixels)
                                 totals["render_ms"] += render_ms
-                            except (VideoError, cv2.error, OSError) as error:
+                            except OSError:
+                                writer.abandon()
+                                raise
+                            except (VideoError, cv2.error) as error:
                                 writer.abandon()
                                 warnings.append(
                                     _video_warning(
@@ -468,7 +471,11 @@ def process_video(
                             writer.write(output_frame)
                             encode_ms = (perf_counter() - before) * 1000
                             totals["encode_submit_ms"] += encode_ms
-                        except (VideoError, cv2.error, OSError) as error:
+                        except OSError:
+                            # Disk errors on the annotated file must not publish summary.json.
+                            writer.abandon()
+                            raise
+                        except (VideoError, cv2.error) as error:
                             writer.abandon()
                             warnings.append(
                                 _video_warning(
@@ -504,7 +511,18 @@ def process_video(
                     )
                     selected += 1
                     if progress is not None:
-                        progress(selected)
+                        try:
+                            progress(selected)
+                        except Exception as error:
+                            # SQLite (or any other) progress failure must not discard results.
+                            warnings.append(
+                                _video_warning(
+                                    "progress_error",
+                                    str(error) or "Progress callback failed",
+                                    "progress",
+                                )
+                            )
+                            progress = None
                 if selected == 0:
                     raise VideoError("empty_selection", "No frames fall in the selected interval")
                 if history is not None:
@@ -614,8 +632,11 @@ def process_video(
         write_json(output_dir / "summary.json", summary)
         return summary
     except (Exception, KeyboardInterrupt) as error:
+        cancelled = isinstance(error, KeyboardInterrupt) or (
+            isinstance(error, VideoError) and error.code == "cancelled"
+        )
         failure = {
-            "status": "cancelled" if isinstance(error, KeyboardInterrupt) else "failed",
+            "status": "cancelled" if cancelled else "failed",
             "error_code": getattr(error, "code", type(error).__name__),
             "error": str(error) or "Processing interrupted",
             "selected_frames": selected,
