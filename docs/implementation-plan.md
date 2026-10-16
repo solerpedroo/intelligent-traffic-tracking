@@ -1,6 +1,6 @@
 # Intelligent Traffic Tracking — Plano de implementação
 
-Versão: 1.0 · Data: 2026-10-16 · Estado: ondas 0–10 validadas; Onda 11 planejada.
+Versão: 1.0 · Data: 2026-10-16 · Estado: ondas 0–11 validadas; Onda 12 planejada.
 Fonte de requisitos: [project-scope.md](project-scope.md).
 Interpretação e adaptações: [scope-analysis.md](scope-analysis.md).
 
@@ -496,5 +496,7 @@ nas sequências estáticas do MOT15. A [Onda 8](agentic/tasks/wave-8-experiments
 executou os estudos A/B/C sem escolher limiar pelo teste.
 A [Onda 9](agentic/tasks/wave-9-jobs-api.md) expõe jobs por SQLite e um worker
 separado. A [Onda 10](agentic/tasks/wave-10-web-workspace.md) cobre o
-workspace, o editor normalizado e o viewer. Próxima:
-[Onda 11](agentic/tasks/wave-11-analytics.md).
+workspace, o editor normalizado e o viewer. A
+[Onda 11](agentic/tasks/wave-11-analytics.md) mostra contagens, séries e
+comparações ligadas aos artefatos. Próxima:
+[Onda 12](agentic/tasks/wave-12-acceptance.md).
