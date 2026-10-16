@@ -77,6 +77,10 @@ em caixas e não foi instalado. A saída desse aviso é descartada.
 
 ### Limitações
 
+- Em 2026-10-15 a página oficial ainda aponta
+  `http://vatic2.stanford.edu/stanford_campus_dataset.zip` (~69 GB, CC BY-NC-SA 3.0).
+  O host resolve para 171.64.68.58, mas HTTP e HTTPS expiraram sem resposta
+  (20 s e 15 s). Não houve arquivo, hash, auditoria de câmera nem relatório real.
 - Não há resultado por sequência real, nem agregação de teste congelado.
 - RAM e VRAM não são medidas.
 - O piloto `vehicles.mp4` não foi reprocessado e continua fora do benchmark.
