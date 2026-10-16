@@ -3,7 +3,7 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–8 implemented. Frozen test: MOT15 PETS09-S2L1. Experiments A/B/C are recorded without a significance claim.
+**Status:** Waves 0–9 implemented. Jobs are queued in SQLite and run by a separate worker process.
 
 The foundation includes an independent Python package, validated data contracts,
 a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
@@ -48,6 +48,15 @@ cp .env.example .env.local
 npm ci
 npm run dev
 ```
+
+In a third terminal, after at least one job exists:
+
+```bash
+uv run --locked --extra api --extra video python -m backend.app.worker
+```
+
+The API returns 202 and does not run the video pipeline. The worker claims one
+job at a time from SQLite. See [the API contract](docs/api-contract.md).
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000). The shell displays API
 availability; it remains usable when the API is offline. Check liveness directly
