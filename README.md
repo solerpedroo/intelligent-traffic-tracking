@@ -3,17 +3,16 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–11 implemented. Analytics and comparison read published job artifacts and keep missing metrics as not evaluated.
+**Status:** Waves 0–12 recorded. A local 1080p run completed in the browser.
+The annotated video stays in `data/` and is not committed. There is no
+project LICENSE. See [mvp-acceptance.md](docs/mvp-acceptance.md).
 
-The foundation includes an independent Python package, validated data contracts,
-a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
-The video extra adds PyAV/FFmpeg decoding and H.264 export, OpenCV preview,
-metadata, original frame timestamps, and temporal selection. The detector extra
-adds YOLO11n and ByteTrack with CPU inference, IDs, trajectories, and annotated
-exports. Finite line counting adds directional events and media-time aggregates.
-ROI visits and observed dwell stream to CSV; class/window heatmaps export raw
-counts and smoothed previews. SQLite jobs and web analytics arrive in later waves. No HTTP upload,
-worker, or database is implemented yet.
+The Python core decodes video, runs optional YOLO11n and ByteTrack on CPU,
+counts finite line crossings, and exports ROI visits and heatmaps. FastAPI
+stores uploads and jobs in SQLite and returns 202. A separate worker process
+runs the same pipeline. The Next.js workspace edits lines and zones, and the
+analytics pages read published artifacts without treating a missing metric as
+zero.
 
 ## Requirements
 
@@ -57,8 +56,8 @@ uv run --locked --extra api --extra video python -m backend.app.worker
 
 The API returns 202 and does not run the video pipeline. The worker claims one
 job at a time from SQLite and reads a verified checkpoint from
-`TRAFFIC_CHECKPOINT_DIR` (default `checkpoints/`). The web workspace is at
-`/workspace`, the queue at `/jobs`, and each result at `/jobs/{job_id}`.
+`TRAFFIC_CHECKPOINT_DIR` (default `checkpoints/`). Pages: `/workspace`,
+`/jobs`, `/jobs/{job_id}`, `/analytics`, `/experiments`, and `/methodology`.
 See [the API contract](docs/api-contract.md).
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000). The shell displays API
@@ -207,8 +206,9 @@ Planning documentation is in Portuguese. Code, API, CLI, and UI use English.
 
 ## Next implementation step
 
-Continue with [Wave 6 — Exports and core integrity](docs/agentic/tasks/wave-6-exports.md).
-The delivery order is Python core, scientific evaluation, then web.
+Acceptance evidence and the remaining portfolio gaps are in
+[mvp-acceptance.md](docs/mvp-acceptance.md). The open card is
+[Wave 12](docs/agentic/tasks/wave-12-acceptance.md).
 
 
 ## ByteTrack tracking (Wave 3)
@@ -299,3 +299,16 @@ TrackEval runs only when identity ground truth and the `evaluation` extra are pr
 The frozen test sequence is `MOT15-PETS09-S2L1`. Other sequences exit 2 unless
 `--allow-development` is set, and that report is not the benchmark.
 See [evaluation](docs/evaluation.md) and [methodology](docs/methodology.md).
+
+## Limitations
+
+- CPU is the supported path in the lockfile. CUDA is not installed by this lock.
+- One worker runs one job. A crashed job becomes `failed` and is not resumed.
+- Track IDs belong to one run. They are not personal identity.
+- Missing ground truth is `not_evaluated`, not zero. MOT15 counting has no
+  line-crossing labels, so that score stays unevaluated.
+- MOT15 terms include CC BY-NC-SA 3.0. The archive is not in git.
+- Ultralytics weights are AGPL-3.0 or Enterprise. This repository has no
+  LICENSE file. That choice is not made here.
+- Do not publish recordings of people or plates without permission.
+- There is no portfolio demo video yet. A storyboard is not a substitute.
