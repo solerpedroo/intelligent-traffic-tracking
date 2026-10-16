@@ -1,28 +1,24 @@
 # Arquitetura — fundação executável
 
-Estado: ondas 0–6. Decisões: [ADRs](agentic/architecture-decisions.md), incluindo
-ADR-007 para vídeo e timestamps e ADR-013 para exports.
-Escopo futuro: [plano de implementação](implementation-plan.md).
+Estado: ondas 0–11 implementadas. A aceitação da Onda 12 ainda não fecha.
+Decisões: [ADRs](agentic/architecture-decisions.md).
+Escopo e gates: [plano de implementação](implementation-plan.md).
 
 ## Componentes existentes
 
 - `vision/`: pacote científico, com contratos e catálogo JSON empacotado.
   Instalação básica requer NumPy e Pydantic, sem dependências HTTP ou de modelos.
-- `backend.app`: extra Python `api`; factory `create_app(settings)` e instância
-  ASGI `app`, configuração validada e uma rota de liveness.
-- `frontend/`: Next.js App Router, TypeScript e shell em inglês. Apenas o
-  indicador de health é um Client Component; página/layout são Server Components.
-  Sem fontes, imagens ou serviços externos exigidos durante o build.
+- `backend.app`: extra Python `api`. A factory não importa o núcleo de visão.
+  Upload, jobs e artefatos ficam em SQLite. O worker é outro processo.
+- `frontend/`: Next.js App Router, TypeScript, workspace, fila, viewer,
+  analytics, comparação e metodologia. Sem fontes ou serviços externos no build.
 
-Fluxo atual: navegador → cliente `fetchHealth` → FastAPI `/api/health` →
-validação do payload na fronteira TypeScript → indicador acessível no shell.
-API indisponível não impede renderizar a página. O cliente tem timeout de cinco
-segundos e aborta a requisição ao desmontar. O build não depende da API ativa.
+Fluxo HTTP: o navegador envia o vídeo e recebe 202. O worker chama o mesmo
+`process_video` da CLI, um job por vez. A página continua utilizável se a API
+estiver fora. O build não depende da API ativa.
 
-Fluxo local existente: CLI → probe → decode sequencial → seleção temporal →
-detector opcional → preview/MP4/CSV/JSON. Fluxo futuro: worker → mesmo pipeline → tracker
-→ geometria/eventos → exports; API com SQLite e storage local; workspace web.
-Não há worker, banco ou upload HTTP. Tracking entra na Onda 3.
+Fluxo local: CLI ou worker → probe → decode → seleção temporal → detector e
+tracker opcionais → contagem e ROI → CSV/JSON e, quando pedido, MP4.
 
 ## Contratos internos
 
