@@ -5,7 +5,7 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 
 from backend.app.db import connect, database_path
-from backend.app.storage import job_dir, remove_tree
+from backend.app.storage import job_dir, remove_tree, video_dir
 
 
 def now() -> datetime:
@@ -55,13 +55,13 @@ def get_job(connection, job_id: str):
 def list_jobs(connection, *, state: str | None, limit: int, offset: int):
     if state is None:
         rows = connection.execute(
-            "SELECT * FROM jobs ORDER BY created_at, id LIMIT ? OFFSET ?",
+            "SELECT * FROM jobs ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
             (limit, offset),
         ).fetchall()
         total = connection.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
     else:
         rows = connection.execute(
-            "SELECT * FROM jobs WHERE state=? ORDER BY created_at, id LIMIT ? OFFSET ?",
+            "SELECT * FROM jobs WHERE state=? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
             (state, limit, offset),
         ).fetchall()
         count = connection.execute("SELECT COUNT(*) FROM jobs WHERE state=?", (state,))
@@ -197,14 +197,25 @@ def cleanup_expired(settings, moment: datetime) -> int:
         cutoff = iso(moment - timedelta(seconds=settings.retention_seconds))
         rows = connection.execute(
             """
-            SELECT id FROM jobs
+            SELECT id, video_id FROM jobs
             WHERE state IN ('completed', 'failed', 'cancelled') AND finished_at < ?
             """,
             (cutoff,),
         ).fetchall()
+        video_ids = {row["video_id"] for row in rows}
         for row in rows:
             remove_tree(job_dir(settings.data_dir, row["id"]))
             connection.execute("DELETE FROM jobs WHERE id=?", (row["id"],))
+        for video_id in video_ids:
+            deleted = connection.execute(
+                """
+                DELETE FROM videos
+                WHERE id=? AND NOT EXISTS (SELECT 1 FROM jobs WHERE video_id=?)
+                """,
+                (video_id, video_id),
+            )
+            if deleted.rowcount:
+                remove_tree(video_dir(settings.data_dir, video_id))
         return len(rows)
     finally:
         connection.close()
