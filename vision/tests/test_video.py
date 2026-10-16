@@ -2,6 +2,7 @@
 
 import csv
 import json
+import sqlite3
 import subprocess
 import sys
 from contextlib import closing, contextmanager
@@ -136,6 +137,7 @@ def test_metadata_limits_are_enforced(sample, limits, code):
         (b"", "size_limit"),
         (b"not really an mp4 file", "unsupported_format"),
         (b"\x00\x00\x00\x18ftypisomgarbage", "decode_error"),
+        (b"\x00\x00\x00\x18ftypqt  garbage", "decode_error"),
     ],
 )
 def test_empty_disguised_and_corrupt_inputs_are_rejected(tmp_path, payload, code):
@@ -266,10 +268,15 @@ def test_reader_context_closes_after_early_stop_and_rejects_reiteration(sample):
 
 
 @pytest.mark.parametrize(
-    "failure", [VideoError("injected", "decode interrupted"), KeyboardInterrupt()]
+    ("failure", "status"),
+    [
+        (VideoError("injected", "decode interrupted"), "failed"),
+        (VideoError("cancelled", "Cancellation requested"), "cancelled"),
+        (KeyboardInterrupt(), "cancelled"),
+    ],
 )
 def test_pipeline_preserves_partial_markers_and_closes_reader(
-    sample, tmp_path, monkeypatch, failure
+    sample, tmp_path, monkeypatch, failure, status
 ):
     original = VideoReader.__iter__
     readers = []
@@ -286,7 +293,9 @@ def test_pipeline_preserves_partial_markers_and_closes_reader(
         process_video(sample, output, config=ProcessingConfig(video_id="broken"))
     report = json.loads((output / "failure.json").read_text())
     assert report["final_artifacts_valid"] is False
-    assert report["status"] == ("cancelled" if isinstance(failure, KeyboardInterrupt) else "failed")
+    assert report["status"] == status
+    if isinstance(failure, VideoError):
+        assert report["error_code"] == failure.code
     assert not (output / "summary.json").exists()
     assert not (output / "video.mp4").exists()
     assert readers[0].closed
@@ -359,6 +368,211 @@ def test_encoder_failure_is_explicit_and_writer_is_closed(tmp_path):
         writer.write(FramePacket(1, 0.04, pixels))
     assert raised.value.code == "encode_error"
     assert writer.closed
+
+
+def header_stream(duration):
+    return SimpleNamespace(
+        codec_context=SimpleNamespace(width=160, height=96, name="h264"),
+        sample_aspect_ratio=None,
+        time_base=Fraction(1, 25),
+        metadata={},
+        duration=duration,
+        average_rate=25,
+        frames=None,
+        start_time=None,
+    )
+
+
+def header_container(duration):
+    return SimpleNamespace(duration=duration, format=SimpleNamespace(name="mp4"))
+
+
+@pytest.mark.parametrize(
+    ("stream_duration", "container_duration", "expected", "source"),
+    [
+        (0, av.time_base, 1.0, "container"),
+        (-1, av.time_base * 2, 2.0, "container"),
+        (None, av.time_base, 1.0, "container"),
+        (0, None, None, "unknown"),
+        (0, 0, None, "unknown"),
+        (-5, -1, None, "unknown"),
+        (50, av.time_base * 5, 2.0, "stream"),
+        (25, int(av.time_base * 400), 1.0, "stream"),
+    ],
+)
+def test_non_positive_stream_duration_falls_back_or_stays_unknown(
+    tmp_path, stream_duration, container_duration, expected, source
+):
+    path = tmp_path / "header.mp4"
+    path.write_bytes(b"x")
+    meta = reader_module.inspect_stream(
+        header_container(container_duration),
+        header_stream(stream_duration),
+        path,
+        VideoLimits(),
+    )
+    assert meta.duration_source == source
+    if expected is None:
+        assert meta.reported_duration_s is None
+    else:
+        assert meta.reported_duration_s == pytest.approx(expected)
+
+
+def test_non_finite_duration_is_still_rejected(tmp_path):
+    path = tmp_path / "header.mp4"
+    path.write_bytes(b"x")
+    with pytest.raises(VideoError) as raised:
+        reader_module.inspect_stream(
+            header_container(av.time_base),
+            header_stream(float("nan")),
+            path,
+            VideoLimits(),
+        )
+    assert raised.value.code == "invalid_duration"
+    with pytest.raises(VideoError) as raised:
+        reader_module.inspect_stream(
+            header_container(float("inf")),
+            header_stream(0),
+            path,
+            VideoLimits(),
+        )
+    assert raised.value.code == "invalid_duration"
+
+
+def test_positive_duration_above_the_limit_is_rejected(tmp_path):
+    path = tmp_path / "header.mp4"
+    path.write_bytes(b"x")
+    limits = VideoLimits(max_duration_s=300)
+    with pytest.raises(VideoError) as raised:
+        reader_module.inspect_stream(
+            header_container(None),
+            header_stream(25 * 400),
+            path,
+            limits,
+        )
+    assert raised.value.code == "duration_limit"
+    with pytest.raises(VideoError) as raised:
+        reader_module.inspect_stream(
+            header_container(int(av.time_base * 400)),
+            header_stream(0),
+            path,
+            limits,
+        )
+    assert raised.value.code == "duration_limit"
+
+
+def test_rotate_metadata_is_rejected_without_a_display_matrix(tmp_path):
+    path = tmp_path / "header.mp4"
+    path.write_bytes(b"x")
+    stream = header_stream(25)
+    stream.metadata = {"rotate": "90"}
+    with pytest.raises(VideoError) as raised:
+        reader_module.inspect_stream(header_container(av.time_base), stream, path, VideoLimits())
+    assert raised.value.code == "unsupported_geometry"
+
+
+def test_mp4_with_quicktime_major_brand_is_left_to_the_decoder(sample, tmp_path):
+    payload = bytearray(sample.read_bytes())
+    offset = payload.find(b"ftyp")
+    assert offset >= 0
+    payload[offset + 4 : offset + 8] = b"qt  "
+    branded = tmp_path / "quicktime-brand.mp4"
+    branded.write_bytes(payload)
+    assert probe_video(branded).codec == "h264"
+    renamed = tmp_path / "quicktime-brand.mov"
+    renamed.write_bytes(payload)
+    with pytest.raises(VideoError, match="Only local .mp4"):
+        probe_video(renamed)
+
+
+def write_display_matrix_mp4(path, degrees):
+    with av.open(str(path), "w", format="mp4") as container:
+        stream = container.add_stream("libx264", rate=25)
+        stream.width, stream.height, stream.pix_fmt = 160, 96, "yuv420p"
+        stream.time_base = Fraction(1, 25)
+        stream.codec_context.max_b_frames = 0
+        stream.codec_context.thread_count = 1
+        if degrees is not None:
+            stream.set_display_rotation(degrees)
+        frame = av.VideoFrame.from_ndarray(np.zeros((96, 160, 3), dtype=np.uint8), format="bgr24")
+        frame.pts = 0
+        for packet in stream.encode(frame):
+            container.mux(packet)
+        for packet in stream.encode():
+            container.mux(packet)
+
+
+def test_probe_rejects_display_matrix_rotation(tmp_path):
+    plain = tmp_path / "plain.mp4"
+    write_display_matrix_mp4(plain, None)
+    assert probe_video(plain).codec == "h264"
+    rotated = tmp_path / "rotated.mp4"
+    write_display_matrix_mp4(rotated, 90)
+    with av.open(str(rotated)) as container:
+        assert "rotate" not in container.streams.video[0].metadata
+    with pytest.raises(VideoError) as raised:
+        probe_video(rotated)
+    assert raised.value.code == "unsupported_geometry"
+    with pytest.raises(VideoError) as raised, VideoReader(rotated) as reader:
+        list(reader)
+    assert raised.value.code == "unsupported_geometry"
+
+
+def test_probe_helper_rejects_patched_frame_rotation():
+    rotated = SimpleNamespace(decode=lambda stream: iter([SimpleNamespace(rotation=90)]))
+    with pytest.raises(VideoError) as raised:
+        reader_module.reject_display_matrix_rotation(rotated, object())
+    assert raised.value.code == "unsupported_geometry"
+    upright = SimpleNamespace(decode=lambda stream: iter([SimpleNamespace(rotation=0)]))
+    reader_module.reject_display_matrix_rotation(upright, object())
+
+
+def test_progress_sqlite_error_still_publishes_summary(sample, tmp_path):
+    def progress(count):
+        raise sqlite3.OperationalError("database is locked")
+
+    output = tmp_path / "progress"
+    summary = process_video(
+        sample, output, config=ProcessingConfig(video_id="progress"), progress=progress
+    )
+    assert summary["numeric_results_valid"] is True
+    assert summary["selected_frames"] == 12
+    assert summary["status"] == "completed_with_warnings"
+    assert [item["code"] for item in summary["warnings"]] == ["progress_error"]
+    assert (output / "summary.json").is_file()
+    assert not (output / "failure.json").exists()
+    assert len(list(csv.DictReader((output / "frames.csv").read_text().splitlines()))) == 12
+
+
+def test_encoder_disk_error_does_not_publish_summary(sample, tmp_path, monkeypatch):
+    def fail(self, packet):
+        raise OSError("no space left on device")
+
+    monkeypatch.setattr(VideoWriter, "write", fail)
+    output = tmp_path / "disk"
+    with pytest.raises(OSError, match="no space left on device"):
+        process_video(sample, output, config=ProcessingConfig(video_id="disk"))
+    assert not (output / "summary.json").exists()
+    assert not (output / "video.mp4").exists()
+    report = json.loads((output / "failure.json").read_text())
+    assert report["status"] == "failed"
+    assert report["final_artifacts_valid"] is False
+
+
+def test_encoder_cv2_error_keeps_numeric_results(sample, tmp_path, monkeypatch):
+    def fail(self, packet):
+        raise cv2.error("injected codec failure")
+
+    monkeypatch.setattr(VideoWriter, "write", fail)
+    output = tmp_path / "codec"
+    summary = process_video(sample, output, config=ProcessingConfig(video_id="codec"))
+    assert summary["status"] == "completed_with_warnings"
+    assert summary["numeric_results_valid"] is True
+    assert summary["export"]["state"] == "failed"
+    assert summary["selected_frames"] == 12
+    assert (output / "summary.json").is_file()
+    assert not (output / "failure.json").exists()
+    assert not (output / "video.mp4").exists()
 
 
 def test_pipeline_rejects_future_model_configuration(sample, tmp_path):
