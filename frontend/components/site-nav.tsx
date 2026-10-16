@@ -4,6 +4,9 @@ const LINKS = [
   ["/", "Overview"],
   ["/workspace", "Workspace"],
   ["/jobs", "Jobs"],
+  ["/analytics", "Analytics"],
+  ["/experiments", "Compare"],
+  ["/methodology", "Methodology"],
 ] as const;
 
 export function SiteNav() {
