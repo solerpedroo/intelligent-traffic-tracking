@@ -7,7 +7,9 @@
       "!!**/.next",
       "!next-env.d.ts",
       "!package-lock.json",
-      "!**/*.tsbuildinfo"
+      "!**/*.tsbuildinfo",
+      "!**/test-results",
+      "!**/playwright-report"
     ]
   },
   "formatter": {
