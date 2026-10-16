@@ -60,8 +60,8 @@ referenciar a anterior sem apagar seu histórico.
   aquisição/auditoria e congelamento dos splits reais seguem pendentes antes da avaliação.
 - Ondas 2–5: resolvidas por ADR-009 a ADR-012.
 - Onda 6: resolvida por ADR-013.
-- Onda 7: protocolo e conversores resolvidos por ADR-014. O baseline real
-  continua bloqueado: splits não auditados, conforme ADR-008.
+- Onda 7: protocolo por ADR-014. Baseline medido nas sequências estáticas do
+  MOT15; o teste congelado é `MOT15-PETS09-S2L1`.
 - Onda 9: migrações, retenção/cotas, heartbeat, recuperação e contrato HTTP final.
 - Onda 12: LICENSE e eventual plano de hospedagem, após verificar termos reais.
 
@@ -311,7 +311,9 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
 
 ## ADR-014 — Protocolo de avaliação e TrackEval (Onda 7)
 
-- Data: 2026-10-15. Estado: aceito para implementação; baseline real bloqueado.
+- Data: 2026-10-15. Estado: aceito. Em 2026-10-16 o teste foi congelado em
+  `MOT15-PETS09-S2L1`, depois de hash e auditoria de câmera. O protocolo
+  numérico não mudou.
 - Decisão: congelar IoU 0,50:0,95, AP de 101 pontos, tolerância de evento de
   0,5 s e IoU de associação 0,5 em `experiments/configs/evaluation-protocol.json`
   antes de medir sequências externas. O registro de splits permanece
@@ -324,6 +326,7 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
   `cv2` headless 4.14 do extra `video`. O metadado resolvido pelo uv fica
   restrito a NumPy, SciPy e tabulate. O extra `evaluation` declara de novo o
   OpenCV headless já usado pelo vídeo.
-- Consequência: a CLI recusa `frozen_test_benchmark` enquanto o teste não
-  estiver congelado. Fixtures sintéticas validam indexação e erros conhecidos,
-  mas não fecham o gate científico. A Onda 8 espera esse baseline.
+- Consequência: a CLI só emite `frozen_test_benchmark` para a sequência de
+  teste com hash. Desenvolvimento e validação usam `--allow-development`.
+  Contagem no MOT15 fica `not_evaluated`. Os números medidos estão em
+  [evaluation.md](../evaluation.md).
