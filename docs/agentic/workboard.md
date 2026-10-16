@@ -1,13 +1,13 @@
 # Workboard
 
-Estado em 2026-10-16: Ondas 0–7 concluídas. Onda 8 proposta.
+Estado em 2026-10-16: Ondas 0–8 concluídas. Onda 9 proposta.
 Fonte única de progresso por onda. Evidências ficam nos cartões.
 
 ## Próxima tarefa
 
-Onda 8 — experimentos A/B/C. O baseline da Onda 7 está em
-[evaluation.md](../evaluation.md). Não ajustar limiar no teste
-`MOT15-PETS09-S2L1`. Contagem segue sem anotação de cruzamento.
+Onda 9 — API, worker e SQLite. Os estudos A/B/C estão em
+[methodology.md](../methodology.md). Não tratar o teste MOT15 como conjunto
+de ajuste.
 
 ## Ondas
 
@@ -19,7 +19,7 @@ Onda 8 — experimentos A/B/C. O baseline da Onda 7 está em
 - **5 — ROI, permanência e heatmaps:** `done`; responsável Codex; [cartão](tasks/wave-5-zones-heatmaps.md).
 - **6 — Exports e integridade do núcleo:** `done`; responsável Cursor; [cartão](tasks/wave-6-exports.md).
 - **7 — Avaliação e benchmark:** `done`; responsável Cursor; [cartão](tasks/wave-7-evaluation.md).
-- **8 — Experimentos A/B/C:** `proposed`; responsável não atribuído; [cartão](tasks/wave-8-experiments.md).
+- **8 — Experimentos A/B/C:** `done`; responsável Cursor; [cartão](tasks/wave-8-experiments.md).
 - **9 — API, worker e SQLite:** `proposed`; responsável não atribuído; [cartão](tasks/wave-9-jobs-api.md).
 - **10 — Workspace, editor e viewer:** `proposed`; responsável não atribuído; [cartão](tasks/wave-10-web-workspace.md).
 - **11 — Analytics, comparação e metodologia:** `proposed`; responsável não atribuído; [cartão](tasks/wave-11-analytics.md).
