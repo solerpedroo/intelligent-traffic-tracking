@@ -208,3 +208,83 @@ def test_running_cancellation_uses_the_pipeline_checkpoint(tmp_path):
         assert error.code == "cancelled"
     else:
         raise AssertionError("cancel check was not honored")
+
+
+def test_preview_and_normalized_geometry_are_stored_without_inference(tmp_path):
+    cfg = settings(tmp_path)
+    with client_for(cfg) as client:
+        video_id = upload(client, tmp_path)
+        preview = client.get(f"/api/videos/{video_id}/preview")
+        assert preview.status_code == 200
+        assert preview.headers["content-type"].startswith("image/png")
+        defaults = client.get("/api/processing-defaults")
+        assert defaults.status_code == 200
+        assert "person" in defaults.json()["detector"]["classes"]
+        created = client.post(
+            "/api/jobs",
+            json={
+                "video_id": video_id,
+                "detector_model_id": "yolo11n-coco",
+                "tracker_config_id": "bytetrack-default",
+                "counting": {
+                    "lines": [
+                        {"line_id": "gate", "start": [0, 0.5], "end": [1, 0.5]},
+                    ]
+                },
+            },
+        )
+        assert created.status_code == 202, created.text
+        assert created.json()["config"]["counting"]["lines"][0]["line_id"] == "gate"
+        rejected = client.post(
+            "/api/jobs",
+            json={"video_id": video_id, "start_s": 2, "end_s": 1},
+        )
+        assert rejected.status_code == 422
+        assert rejected.json()["error_code"] == "invalid_job"
+        needs_tracker = client.post(
+            "/api/jobs",
+            json={
+                "video_id": video_id,
+                "counting": {
+                    "lines": [
+                        {"line_id": "gate", "start": [0, 0.5], "end": [1, 0.5]},
+                    ]
+                },
+            },
+        )
+        assert needs_tracker.status_code == 422
+
+
+def test_parallel_connections_migrate_once(tmp_path):
+    cfg = settings(tmp_path)
+    errors = []
+
+    def open_once():
+        try:
+            connection = open_db(cfg)
+            connection.execute("SELECT COUNT(*) FROM videos").fetchone()
+            connection.close()
+        except Exception as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=open_once) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert errors == []
+
+
+def test_missing_checkpoint_fails_the_job(tmp_path):
+    cfg = settings(tmp_path, checkpoint_dir=tmp_path / "absent")
+    with client_for(cfg) as client:
+        video_id = upload(client, tmp_path)
+        job_id = client.post(
+            "/api/jobs",
+            json={"video_id": video_id, "detector_model_id": "yolo11n-coco"},
+        ).json()["job_id"]
+    assert run_available(cfg) == 1
+    with client_for(cfg) as client:
+        body = client.get(f"/api/jobs/{job_id}").json()
+    assert body["state"] == "failed"
+    assert body["error_code"] == "missing_checkpoint"
