@@ -62,6 +62,8 @@ referenciar a anterior sem apagar seu histórico.
 - Onda 6: resolvida por ADR-013.
 - Onda 7: protocolo por ADR-014. Baseline medido nas sequências estáticas do
   MOT15; o teste congelado é `MOT15-PETS09-S2L1`.
+- Onda 8: fatores A/B/C fixados em `experiments/configs/wave8-protocol.json`
+  antes das execuções. Sem significância e sem ajuste pelo teste.
 - Onda 9: migrações, retenção/cotas, heartbeat, recuperação e contrato HTTP final.
 - Onda 12: LICENSE e eventual plano de hospedagem, após verificar termos reais.
 
