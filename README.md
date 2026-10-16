@@ -3,7 +3,7 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–10 implemented. The browser workspace uploads a video, edits normalized lines and zones, and opens the job published by the worker.
+**Status:** Waves 0–11 implemented. Analytics and comparison read published job artifacts and keep missing metrics as not evaluated.
 
 The foundation includes an independent Python package, validated data contracts,
 a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
