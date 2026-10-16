@@ -66,8 +66,13 @@ async def upload_video(request: Request):
     source.write_bytes(payload)
     try:
         from vision.video import probe_video
+        from vision.video.errors import VideoError
 
         metadata = probe_video(source)
+    except VideoError as exc:
+        source.unlink(missing_ok=True)
+        directory.rmdir()
+        raise error(422, exc.code, str(exc)) from exc
     except Exception as exc:
         source.unlink(missing_ok=True)
         directory.rmdir()
