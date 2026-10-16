@@ -7,13 +7,16 @@ afterEach(() => vi.unstubAllGlobals());
 it("renders the foundation shell and confirms API liveness", async () => {
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue(
-      Response.json({
+    vi.fn(async (url: string) => {
+      if (String(url).includes("/api/jobs")) {
+        return Response.json({ items: [], total: 0, limit: 20, offset: 0 });
+      }
+      return Response.json({
         status: "ok",
         service: "intelligent-traffic-tracking-api",
         api_version: "v1",
-      }),
-    ),
+      });
+    }),
   );
   render(<HomePage />);
   expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
