@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { ApiError, cancelJob, fetchJobs } from "@/lib/api";
 import { shouldKeepPolling } from "@/lib/polling";
@@ -9,43 +9,91 @@ import type { JobRecord } from "@/types/api";
 export function JobsBoard() {
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const jobsRef = useRef<JobRecord[]>([]);
+  const requestSerial = useRef(0);
+  const finishedSerial = useRef(0);
+  const scheduleRef = useRef<(() => void) | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     let active = true;
     let timer = 0;
-    const load = async () => {
+    const controller = new AbortController();
+    mountedRef.current = true;
+
+    const arm = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        void load();
+      }, 2000);
+    };
+    scheduleRef.current = arm;
+
+    const applyJobs = (next: JobRecord[]) => {
+      jobsRef.current = next;
+      setJobs(next);
+    };
+
+    async function load() {
+      const serial = ++requestSerial.current;
       try {
-        const page = await fetchJobs();
+        const page = await fetchJobs(controller.signal);
         if (!active) return;
-        setJobs(page.items);
-        setError(null);
-        if (shouldKeepPolling(page.items.map((job) => job.state))) {
-          timer = window.setTimeout(load, 2000);
+        if (serial < finishedSerial.current) {
+          if (shouldKeepPolling(jobsRef.current.map((job) => job.state))) {
+            arm();
+          }
+          return;
         }
+        finishedSerial.current = serial;
+        applyJobs(page.items);
+        setError(null);
+        if (shouldKeepPolling(page.items.map((job) => job.state))) arm();
       } catch (reason) {
-        if (!active) return;
+        if (!active || controller.signal.aborted) return;
+        if (serial < finishedSerial.current) {
+          if (shouldKeepPolling(jobsRef.current.map((job) => job.state))) {
+            arm();
+          }
+          return;
+        }
+        finishedSerial.current = serial;
         setError(
           reason instanceof ApiError
             ? reason.message
             : "API unavailable — check the local server and API URL.",
         );
+        arm();
       }
-    };
+    }
+
     void load();
     return () => {
       active = false;
+      mountedRef.current = false;
+      scheduleRef.current = null;
+      controller.abort();
       window.clearTimeout(timer);
     };
   }, []);
 
   async function onCancel(jobId: string) {
+    const serial = ++requestSerial.current;
     try {
       const updated = await cancelJob(jobId);
-      setJobs((current) =>
-        current.map((job) => (job.job_id === jobId ? updated : job)),
+      if (!mountedRef.current) return;
+      finishedSerial.current = Math.max(finishedSerial.current, serial);
+      const next = jobsRef.current.map((job) =>
+        job.job_id === jobId ? updated : job,
       );
+      jobsRef.current = next;
+      setJobs(next);
       setError(null);
+      if (shouldKeepPolling(next.map((job) => job.state))) {
+        scheduleRef.current?.();
+      }
     } catch (reason) {
+      if (!mountedRef.current || serial < finishedSerial.current) return;
       setError(
         reason instanceof ApiError
           ? reason.message
