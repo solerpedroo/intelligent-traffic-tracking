@@ -1,7 +1,7 @@
 import { expect, type Route, test } from "@playwright/test";
 
 const job = {
-  job_id: "job-1",
+  job_id: "aaaaaaaa-job-1",
   video_id: "video-1",
   state: "completed",
   stage: "completed",
@@ -24,7 +24,10 @@ test("reads counts from artifacts and refuses an incompatible comparison", async
     if (path === "/api/jobs") {
       await route.fulfill({
         json: {
-          items: [job, { ...job, job_id: "job-2", video_id: "video-2" }],
+          items: [
+            job,
+            { ...job, job_id: "aaaaaaaa-job-2", video_id: "video-2" },
+          ],
           total: 2,
           limit: 20,
           offset: 0,
@@ -43,7 +46,7 @@ test("reads counts from artifacts and refuses an incompatible comparison", async
       });
       return;
     }
-    if (path === "/api/jobs/job-1") {
+    if (path === "/api/jobs/aaaaaaaa-job-1") {
       await route.fulfill({ json: job });
       return;
     }
@@ -66,7 +69,7 @@ test("reads counts from artifacts and refuses an incompatible comparison", async
       return;
     }
     if (path.endsWith("/config.json")) {
-      const video = path.includes("job-2") ? "video-2" : "video-1";
+      const video = path.includes("/aaaaaaaa-job-2/") ? "video-2" : "video-1";
       await route.fulfill({
         json: {
           video_id: video,
@@ -86,16 +89,16 @@ test("reads counts from artifacts and refuses an incompatible comparison", async
     await route.fulfill({ status: 404, body: "" });
   });
 
-  await page.goto("/analytics?job=job-1");
+  await page.goto("/analytics?job=aaaaaaaa-job-1");
   await expect(page.getByText("2 events in summary.json")).toBeVisible();
   await expect(
     page.getByText(/Confirmed ID switches need ground truth/),
   ).toBeVisible();
   await page.getByRole("link", { name: "Compare" }).click();
   await page.getByRole("combobox", { name: "Left job" }).click();
-  await page.getByRole("option", { name: "job-1 · video-1" }).click();
+  await page.getByRole("option", { name: "aaaaaaaa-job-1" }).click();
   await page.getByRole("combobox", { name: "Right job" }).click();
-  await page.getByRole("option", { name: "job-2 · video-2" }).click();
+  await page.getByRole("option", { name: "aaaaaaaa-job-2" }).click();
   await expect(page.getByText(/not a controlled ablation/)).toBeVisible();
   await expect(page.getByText("Different videos")).toBeVisible();
 });
