@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { jobOptionLabel } from "@/components/job-picker";
 import {
   buildAnalytics,
   compareRuns,
@@ -120,5 +121,89 @@ describe("analytics artifacts", () => {
     expect(comparison.controlled).toBe(false);
     expect(comparison.differences).toContain("Different videos");
     expect(comparison.statement).toMatch(/not a controlled ablation/);
+  });
+
+  it("does not turn a missing count or start into a measured zero", () => {
+    const report = buildAnalytics({
+      summary: {
+        counting: {
+          total_events: null,
+          by_line_direction: [
+            { line_id: "gate", direction: "A_TO_B", count: null },
+          ],
+        },
+      },
+      windowsText: [
+        "window_start_s,window_end_s,line_id,class_id,direction,count",
+        "0,60,gate,2,A_TO_B,",
+        "60,120,gate,2,A_TO_B,1",
+      ].join("\n"),
+      lifetimesText: null,
+      occupancyText: [
+        "zone_id,class_id,observed_count",
+        "lane,2,",
+        "lane,2,4",
+      ].join("\n"),
+      heatmapText: null,
+      classes: [],
+    });
+    expect(report.counts.status).toBe("not_evaluated");
+    expect(report.counts.total).toBeNull();
+    expect(report.series.points).toEqual([
+      { key: "60-120", startS: 60, endS: 120, count: 1 },
+    ]);
+    expect(report.occupancy.status).toBe("measured");
+    expect(report.occupancy.bars[0]).toMatchObject({
+      maximum: 4,
+      mean: 4,
+      frames: 1,
+    });
+
+    const blanks = buildAnalytics({
+      summary: { counting: { total_events: 0, by_line_direction: [] } },
+      windowsText:
+        "window_start_s,window_end_s,line_id,class_id,direction,count\n0,60,gate,2,A_TO_B,\n",
+      lifetimesText: null,
+      occupancyText: "zone_id,class_id,observed_count\nlane,2,\n",
+      heatmapText: null,
+      classes: [],
+    });
+    expect(blanks.counts.status).toBe("measured");
+    expect(blanks.counts.total).toBe(0);
+    expect(blanks.series.status).toBe("not_evaluated");
+    expect(blanks.occupancy.status).toBe("not_evaluated");
+
+    const missing = runFacts("left-job", { video_id: "clip", end_s: 10 }, {});
+    const alsoMissing = runFacts(
+      "right-job",
+      { video_id: "clip", start_s: "", end_s: 10 },
+      {},
+    );
+    expect(missing.startS).toBeNull();
+    expect(alsoMissing.startS).toBeNull();
+    const open = compareRuns(missing, alsoMissing);
+    expect(open.controlled).toBe(false);
+    expect(open.differences).toContain("Time range was not recorded");
+
+    const recorded = runFacts(
+      "recorded-job",
+      { video_id: "clip", start_s: 0, end_s: 10 },
+      {},
+    );
+    expect(recorded.startS).toBe(0);
+    expect(
+      compareRuns(recorded, { ...recorded, jobId: "other-job" }).controlled,
+    ).toBe(true);
+    expect(compareRuns(missing, recorded).differences).toContain(
+      "Time range was not recorded",
+    );
+  });
+
+  it("includes the full job id in the comparison select label", () => {
+    expect(jobOptionLabel("aaaaaaaa-job-1")).toBe("aaaaaaaa · aaaaaaaa-job-1");
+    expect(jobOptionLabel("aaaaaaaa-job-2")).toBe("aaaaaaaa · aaaaaaaa-job-2");
+    expect(jobOptionLabel("aaaaaaaa-job-1")).not.toBe(
+      jobOptionLabel("aaaaaaaa-job-2"),
+    );
   });
 });
