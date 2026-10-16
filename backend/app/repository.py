@@ -153,14 +153,27 @@ def finish(
     error_code=None,
     error=None,
     summary_status=None,
+    processed_frames=None,
 ):
     connection.execute(
         """
         UPDATE jobs
-        SET state=?, stage=?, finished_at=?, heartbeat_at=?, error_code=?, error=?, summary_status=?
+        SET state=?, stage=?, finished_at=?, heartbeat_at=?, error_code=?, error=?,
+            summary_status=?,
+            processed_frames=COALESCE(?, processed_frames)
         WHERE id=? AND state='running'
         """,
-        (state, state, iso(moment), iso(moment), error_code, error, summary_status, job_id),
+        (
+            state,
+            state,
+            iso(moment),
+            iso(moment),
+            error_code,
+            error,
+            summary_status,
+            processed_frames,
+            job_id,
+        ),
     )
 
 
