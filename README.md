@@ -3,7 +3,7 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–7 implemented. The frozen test sequence is MOT15 PETS09-S2L1. Counting has no crossing labels on that set.
+**Status:** Waves 0–8 implemented. Frozen test: MOT15 PETS09-S2L1. Experiments A/B/C are recorded without a significance claim.
 
 The foundation includes an independent Python package, validated data contracts,
 a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
