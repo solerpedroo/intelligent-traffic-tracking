@@ -6,7 +6,8 @@ Fonte única de progresso por onda. Evidências ficam nos cartões.
 ## Próxima tarefa
 
 Onda 7 — avaliação. Conversores, protocolo e TrackEval sintético estão no
-cartão. O baseline real está bloqueado: splits sem hash e sem congelamento.
+cartão. O baseline real está bloqueado: o zip oficial em
+`vatic2.stanford.edu` não respondeu em 2026-10-15; splits seguem sem hash.
 Não iniciar a Onda 8 antes desse baseline.
 
 ## Ondas
