@@ -44,6 +44,16 @@ def test_cors_allows_configured_local_origin_only(client):
     )
     assert preflight.status_code == 200
     assert preflight.headers["access-control-allow-origin"] == "http://localhost:3000"
+    upload = client.options(
+        "/api/videos",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,x-filename",
+        },
+    )
+    assert upload.status_code == 200
+    assert "x-filename" in upload.headers["access-control-allow-headers"]
 
 
 def test_settings_read_environment_and_normalize_origins(monkeypatch):
