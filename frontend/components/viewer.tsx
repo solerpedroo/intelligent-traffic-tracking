@@ -105,6 +105,13 @@ export function Viewer({ jobId }: { jobId: string }) {
       </p>
       {error ? <p role="alert">{error}</p> : null}
       {!job ? <p role="status">Loading job…</p> : null}
+      {job?.state === "completed" ? (
+        <p>
+          <Link href={`/analytics?job=${job.job_id}`}>
+            Open analytics for this job
+          </Link>
+        </p>
+      ) : null}
       {job ? (
         <p role="status" aria-live="polite">
           {job.state}
