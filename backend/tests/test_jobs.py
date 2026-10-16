@@ -255,6 +255,24 @@ def test_preview_and_normalized_geometry_are_stored_without_inference(tmp_path):
         assert needs_tracker.status_code == 422
 
 
+def test_heatmap_preview_rejects_paths_outside_the_job(tmp_path):
+    cfg = settings(tmp_path)
+    with client_for(cfg) as client:
+        video_id = upload(client, tmp_path)
+        job_id = client.post("/api/jobs", json={"video_id": video_id}).json()["job_id"]
+    heatmaps = job_dir(tmp_path, job_id) / "heatmaps"
+    heatmaps.mkdir(parents=True)
+    (heatmaps / "window.png").write_bytes(b"\x89PNG\r\n")
+    with client_for(cfg) as client:
+        preview = client.get(f"/api/jobs/{job_id}/heatmaps/window.png")
+        assert preview.status_code == 200
+        assert preview.headers["content-type"].startswith("image/png")
+        assert client.get(f"/api/jobs/{job_id}/heatmaps/missing.png").status_code == 404
+    from backend.app.storage import heatmap_preview_path
+
+    assert heatmap_preview_path(job_dir(tmp_path, job_id), "../secret.png") is None
+
+
 def test_parallel_connections_migrate_once(tmp_path):
     cfg = settings(tmp_path)
     errors = []
