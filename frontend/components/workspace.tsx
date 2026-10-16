@@ -32,6 +32,7 @@ export function Workspace() {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -61,10 +62,10 @@ export function Workspace() {
     fetchVideo(requestedVideo, controller.signal)
       .then((record) => {
         setVideo(record);
-        setError(null);
+        setVideoError(null);
       })
       .catch((reason: unknown) => {
-        if (!controller.signal.aborted) setError(problem(reason));
+        if (!controller.signal.aborted) setVideoError(problem(reason));
       });
     return () => controller.abort();
   }, [requestedVideo]);
@@ -75,6 +76,7 @@ export function Workspace() {
       return;
     }
     setError(null);
+    setVideoError(null);
     try {
       const record = await uploadVideo(file);
       setVideo(record);
@@ -117,6 +119,7 @@ export function Workspace() {
       </p>
       {loading ? <p role="status">Loading catalog…</p> : null}
       {error ? <p role="alert">{error}</p> : null}
+      {videoError ? <p role="alert">{videoError}</p> : null}
       {message ? <p role="status">{message}</p> : null}
       <section className="panel" aria-labelledby="upload-title">
         <h2 id="upload-title">Upload</h2>
