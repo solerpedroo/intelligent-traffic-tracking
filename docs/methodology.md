@@ -12,18 +12,18 @@ com eventos de cruzamento não recebe HOTA. Uma sequência sem boxes não recebe
 mAP. Ausência de referência é `not_evaluated` e o motivo fica no relatório.
 Médias agregadas ignoram essas ausências; não as convertem em zero.
 
-O conjunto de teste planejado está em
-[splits.json](../experiments/configs/splits.json). Ele ainda não está congelado:
-as três sequências candidatas do Stanford Drone Dataset não têm hash, auditoria
-de câmera nem rótulos confirmados. Enquanto `test_split_frozen` for falso, a
-CLI recusa o rótulo `frozen_test_benchmark`.
+O teste congelado está em
+[splits.json](../experiments/configs/splits.json): `MOT15-PETS09-S2L1`.
+`MOT15-TUD-Stadtmitte` é desenvolvimento e `MOT15-KITTI-17` é validação.
+A atribuição foi feita pela duração e pela descrição oficial, antes da
+inferência. O Stanford Drone Dataset continua sem arquivo.
 
 ## O que não entra no baseline
 
 - O piloto local de `vehicles.mp4` continua sendo checagem de desenvolvimento.
   Não substitui o teste congelado e não tem identidades MOT de referência.
-- Não há meta de HOTA, IDF1 ou FPS. Esses números só serão definidos depois de
-  um baseline medido no hardware e nas sequências reais.
+- O baseline medido está em [evaluation.md](evaluation.md). Não há meta
+  anterior de HOTA, IDF1 ou FPS; os números são os observados nesse hardware.
 - Escala de objeto é um recorte por área do box (`small` < 32², `medium` < 96²,
   `large` no restante), não o tratamento de regiões `ignore` do COCO.
 - TrackEval é executado por classe, com pré-processamento MOTChallenge
@@ -31,6 +31,5 @@ CLI recusa o rótulo `frozen_test_benchmark`.
 
 ## Próximo gate
 
-Obter as sequências na fonte oficial, registrar URL, data, termos e SHA-256,
-auditar câmera fixa e só então mudar `test_split_frozen` para verdadeiro no
-mesmo commit que publica os hashes. A Onda 8 não começa antes desse baseline.
+A Onda 8 pode usar este baseline. Contagem continua sem referência nestas
+sequências. Não ajustar limiar olhando o teste `MOT15-PETS09-S2L1`.
