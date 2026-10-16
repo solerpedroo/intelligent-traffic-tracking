@@ -92,8 +92,10 @@ test("reads counts from artifacts and refuses an incompatible comparison", async
     page.getByText(/Confirmed ID switches need ground truth/),
   ).toBeVisible();
   await page.getByRole("link", { name: "Compare" }).click();
-  await page.getByLabel("Left job").selectOption("job-1");
-  await page.getByLabel("Right job").selectOption("job-2");
+  await page.getByRole("combobox", { name: "Left job" }).click();
+  await page.getByRole("option", { name: "job-1 · video-1" }).click();
+  await page.getByRole("combobox", { name: "Right job" }).click();
+  await page.getByRole("option", { name: "job-2 · video-2" }).click();
   await expect(page.getByText(/not a controlled ablation/)).toBeVisible();
   await expect(page.getByText("Different videos")).toBeVisible();
 });
