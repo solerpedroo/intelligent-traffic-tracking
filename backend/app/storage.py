@@ -41,6 +41,18 @@ def directory_size(path: Path) -> int:
     return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
 
 
+def heatmap_preview_path(directory: Path, name: str) -> Path | None:
+    if not name.endswith(".png") or Path(name).name != name:
+        return None
+    if not name[:-4].replace(".", "").replace("_", "").replace("-", "").isalnum():
+        return None
+    root = (directory / "heatmaps").resolve()
+    candidate = (root / name).resolve()
+    if candidate.parent != root or not candidate.is_file():
+        return None
+    return candidate
+
+
 def artifact_path(directory: Path, name: str) -> Path | None:
     if name not in ALLOWED_ARTIFACTS or Path(name).name != name:
         return None
