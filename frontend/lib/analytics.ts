@@ -64,7 +64,7 @@ export type AnalyticsReport = {
 export type RunFacts = {
   jobId: string;
   videoId: string;
-  startS: number;
+  startS: number | null;
   endS: number | null;
   modelId: string | null;
   checkpoint: string | null;
@@ -124,8 +124,8 @@ export function runFacts(
       resolved?.video_id,
       stringOr(manifestRecord?.video_id, ""),
     ),
-    startS: numberOr(resolved?.start_s, 0),
-    endS: resolved?.end_s == null ? null : numberOr(resolved.end_s, 0),
+    startS: finiteNumber(resolved?.start_s),
+    endS: finiteNumber(resolved?.end_s),
     modelId:
       resolved?.detector_model_id == null
         ? null
@@ -157,7 +157,9 @@ export function runFacts(
 export function compareRuns(left: RunFacts, right: RunFacts): Comparison {
   const differences: string[] = [];
   if (left.videoId !== right.videoId) differences.push("Different videos");
-  if (left.startS !== right.startS || left.endS !== right.endS) {
+  if (left.startS == null || right.startS == null) {
+    differences.push("Time range was not recorded");
+  } else if (left.startS !== right.startS || left.endS !== right.endS) {
     differences.push("Different time ranges");
   }
   if (left.geometry !== right.geometry)
@@ -221,16 +223,32 @@ function countsFrom(
       bars: [],
     };
   }
-  const bars = asRecords(counting.by_line_direction).map((row) => ({
-    key: `${row.line_id}-${row.direction}`,
-    label: `${row.line_id} ${row.direction}`,
-    count: numberOr(row.count, 0),
-    unit: "events" as const,
-  }));
+  const total = finiteNumber(counting.total_events);
+  if (total == null) {
+    return {
+      status: "not_evaluated",
+      reason:
+        "total_events is missing from the counting summary. A missing count is not zero.",
+      total: null,
+      bars: [],
+    };
+  }
+  const bars = asRecords(counting.by_line_direction).flatMap((row) => {
+    const count = finiteNumber(row.count);
+    if (count == null) return [];
+    return [
+      {
+        key: `${row.line_id}-${row.direction}`,
+        label: `${row.line_id} ${row.direction}`,
+        count,
+        unit: "events" as const,
+      },
+    ];
+  });
   return {
     status: "measured",
     reason: null,
-    total: numberOr(counting.total_events, 0),
+    total,
     bars,
   };
 }
@@ -246,14 +264,27 @@ function seriesFrom(text: string | null): AnalyticsReport["series"] {
     };
   }
   const grouped = new Map<string, SeriesPoint>();
+  let rows = 0;
   for (const row of parseCsv(text)) {
-    const startS = Number(row.window_start_s);
-    const endS = Number(row.window_end_s);
-    if (!Number.isFinite(startS) || !Number.isFinite(endS)) continue;
+    rows += 1;
+    const startS = finiteNumber(row.window_start_s);
+    const endS = finiteNumber(row.window_end_s);
+    const count = finiteNumber(row.count);
+    if (startS == null || endS == null || count == null) continue;
     const key = `${startS}-${endS}`;
     const current = grouped.get(key) ?? { key, startS, endS, count: 0 };
-    current.count += numberOr(row.count, 0);
+    current.count += count;
     grouped.set(key, current);
+  }
+  if (rows > 0 && grouped.size === 0) {
+    return {
+      status: "not_evaluated",
+      reason:
+        "Crossing window counts are missing. A missing count is not zero.",
+      points: [],
+      windowNote:
+        "Sparse windows omit empty intervals. A gap is not a measured zero.",
+    };
   }
   return {
     status: "measured",
@@ -276,14 +307,25 @@ function occupancyFrom(
     };
   }
   const groups = new Map<string, { label: string; values: number[] }>();
+  let rows = 0;
   for (const row of parseCsv(text)) {
+    rows += 1;
+    const observed = finiteNumber(row.observed_count);
+    if (observed == null) continue;
     const key = `${row.zone_id}|${row.class_id}`;
     const current = groups.get(key) ?? {
       label: `${row.zone_id} · ${label(row.class_id ?? "")}`,
       values: [],
     };
-    current.values.push(numberOr(row.observed_count, 0));
+    current.values.push(observed);
     groups.set(key, current);
+  }
+  if (rows > 0 && groups.size === 0) {
+    return {
+      status: "not_evaluated",
+      reason: "Occupancy counts are missing. A missing count is not zero.",
+      bars: [],
+    };
   }
   return {
     status: "measured",
@@ -442,8 +484,14 @@ function stringOr(value: unknown, fallback: string): string {
 }
 
 function numberOr(value: unknown, fallback: number): number {
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return finiteNumber(value) ?? fallback;
+}
+
+function finiteNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string" || value.trim() === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function finite(value: unknown): number | null {
