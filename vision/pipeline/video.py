@@ -86,6 +86,7 @@ def process_video(
     checkpoint: Path | None = None,
     detector: DetectorAdapter | None = None,
     cancel_check=None,
+    progress=None,
 ) -> dict:
     """Decode original indices, optionally detect, export [start_s,end_s).
 
@@ -502,6 +503,8 @@ def process_video(
                         ]
                     )
                     selected += 1
+                    if progress is not None:
+                        progress(selected)
                 if selected == 0:
                     raise VideoError("empty_selection", "No frames fall in the selected interval")
                 if history is not None:
