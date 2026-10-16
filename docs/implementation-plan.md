@@ -1,6 +1,6 @@
 # Intelligent Traffic Tracking — Plano de implementação
 
-Versão: 1.0 · Data: 2026-10-16 · Estado: ondas 0–7 validadas; Onda 8 planejada.
+Versão: 1.0 · Data: 2026-10-16 · Estado: ondas 0–8 validadas; Onda 9 planejada.
 Fonte de requisitos: [project-scope.md](project-scope.md).
 Interpretação e adaptações: [scope-analysis.md](scope-analysis.md).
 
@@ -492,6 +492,6 @@ de vídeo anotado. Contratos em [tracking.md](tracking.md),
 Evidências nos cartões [0](agentic/tasks/wave-0-foundation.md) a
 [6](agentic/tasks/wave-6-exports.md). Pilotos locais verificam integração.
 A [Onda 7](agentic/tasks/wave-7-evaluation.md) mediu o YOLO11n e o ByteTrack
-nas sequências estáticas do MOT15. O teste congelado é `MOT15-PETS09-S2L1`.
-Próxima: [Onda 8](agentic/tasks/wave-8-experiments.md), sem ajustar limiar
-nesse teste.
+nas sequências estáticas do MOT15. A [Onda 8](agentic/tasks/wave-8-experiments.md)
+executou os estudos A/B/C sem escolher limiar pelo teste.
+Próxima: [Onda 9](agentic/tasks/wave-9-jobs-api.md).
