@@ -3,13 +3,14 @@
 import threading
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.core.config import Settings
 from backend.app.main import create_app
-from backend.app.repository import claim_next, get_job, iso, now, open_db
-from backend.app.storage import job_dir
-from backend.app.worker import recover, run_available
+from backend.app.repository import claim_next, get_job, get_video, iso, now, open_db
+from backend.app.storage import job_dir, video_dir
+from backend.app.worker import cycle, main, recover, run_available
 from scripts.generate_sample import generate_sample
 from vision.video.errors import VideoError
 
@@ -44,7 +45,9 @@ def test_invalid_upload_is_rejected(tmp_path):
             headers={"content-type": "application/octet-stream", "x-filename": "bad.mp4"},
         )
     assert response.status_code == 422
-    assert response.json()["error_code"] == "invalid_video"
+    body = response.json()
+    assert body["error_code"] == "unsupported_format"
+    assert body["error"] == "Input must contain an ISO-BMFF ftyp header"
 
 
 def test_http_cycle_does_not_infer_inside_the_request(tmp_path):
@@ -176,7 +179,9 @@ def test_cleanup_keeps_the_active_job(tmp_path):
     connection = open_db(cfg)
     assert get_job(connection, old) is None
     assert get_job(connection, active)["state"] == "running"
+    assert get_video(connection, video_id) is not None
     connection.close()
+    assert video_dir(tmp_path, video_id).is_dir()
 
 
 def test_running_cancellation_uses_the_pipeline_checkpoint(tmp_path):
@@ -306,3 +311,153 @@ def test_missing_checkpoint_fails_the_job(tmp_path):
         body = client.get(f"/api/jobs/{job_id}").json()
     assert body["state"] == "failed"
     assert body["error_code"] == "missing_checkpoint"
+
+
+def test_unexpected_processor_error_fails_the_job(tmp_path):
+    cfg = settings(tmp_path)
+    with client_for(cfg) as client:
+        video_id = upload(client, tmp_path)
+        job_id = client.post("/api/jobs", json={"video_id": video_id}).json()["job_id"]
+
+    def processor(*_args):
+        raise RuntimeError("tracker exploded")
+
+    assert run_available(cfg, processor=processor) == 1
+    with client_for(cfg) as client:
+        body = client.get(f"/api/jobs/{job_id}").json()
+    assert body["state"] == "failed"
+    assert body["error_code"] == "worker_error"
+
+
+def test_content_length_above_upload_limit_is_rejected(tmp_path):
+    cfg = settings(tmp_path, max_upload_bytes=8)
+    with client_for(cfg) as client:
+        response = client.post(
+            "/api/videos",
+            content=b"0123456789",
+            headers={"content-type": "application/octet-stream", "x-filename": "big.mp4"},
+        )
+    assert response.status_code == 413
+    assert response.json()["error_code"] == "upload_too_large"
+    assert not (tmp_path / "videos").exists()
+
+
+def test_quota_includes_the_incoming_upload(tmp_path):
+    cfg = settings(tmp_path)
+    with client_for(cfg) as client:
+        upload(client, tmp_path)
+    from backend.app.storage import directory_size
+
+    used = directory_size(tmp_path)
+    payload = b"0123456789abcdef"
+    tight = settings(tmp_path, quota_bytes=used + len(payload) - 1)
+    assert used < tight.quota_bytes < used + len(payload)
+    with client_for(tight) as client:
+        response = client.post(
+            "/api/videos",
+            content=payload,
+            headers={"content-type": "application/octet-stream", "x-filename": "more.mp4"},
+        )
+    assert response.status_code == 413
+    assert response.json()["error_code"] == "quota_exceeded"
+
+
+def test_probe_disk_error_is_not_invalid_video(tmp_path, monkeypatch):
+    def boom(*_args, **_kwargs):
+        raise OSError(5, "Input/output error")
+
+    monkeypatch.setattr("vision.video.probe_video", boom)
+    cfg = settings(tmp_path)
+    with client_for(cfg) as client:
+        response = client.post(
+            "/api/videos",
+            content=b"not-a-video",
+            headers={"content-type": "application/octet-stream", "x-filename": "bad.mp4"},
+        )
+    assert response.status_code == 507
+    assert response.json()["error_code"] == "disk_error"
+    videos = tmp_path / "videos"
+    assert not videos.exists() or not any(videos.iterdir())
+
+
+def test_probe_uses_configured_upload_limit(tmp_path, monkeypatch):
+    from vision.video.models import VideoLimits
+    from vision.video.reader import probe_video as real_probe
+
+    captured = {}
+
+    def spy(path, limits=None):
+        captured["limits"] = limits
+        return real_probe(path, limits)
+
+    monkeypatch.setattr("vision.video.probe_video", spy)
+    cfg = settings(tmp_path, max_upload_bytes=1024 * 1024)
+    with client_for(cfg) as client:
+        upload(client, tmp_path)
+    limits = captured["limits"]
+    defaults = VideoLimits()
+    assert limits.max_bytes == cfg.max_upload_bytes
+    assert limits.max_duration_s == defaults.max_duration_s
+    assert limits.max_pixels == defaults.max_pixels
+    assert limits.max_frames == defaults.max_frames
+
+
+def test_jobs_are_listed_newest_first(tmp_path):
+    cfg = settings(tmp_path)
+    with client_for(cfg) as client:
+        video_id = upload(client, tmp_path)
+        first = client.post("/api/jobs", json={"video_id": video_id}).json()["job_id"]
+        second = client.post("/api/jobs", json={"video_id": video_id}).json()["job_id"]
+    connection = open_db(cfg)
+    connection.execute(
+        "UPDATE jobs SET created_at=? WHERE id=?",
+        ("2020-01-01T00:00:00+00:00", first),
+    )
+    connection.execute(
+        "UPDATE jobs SET created_at=? WHERE id=?",
+        ("2020-01-02T00:00:00+00:00", second),
+    )
+    connection.close()
+    with client_for(cfg) as client:
+        listed = client.get("/api/jobs").json()["items"]
+        filtered = client.get("/api/jobs", params={"state": "queued"}).json()["items"]
+    assert [item["job_id"] for item in listed] == [second, first]
+    assert [item["job_id"] for item in filtered] == [second, first]
+
+
+def test_cycle_deletes_an_old_completed_job(tmp_path):
+    cfg = settings(tmp_path, retention_seconds=0)
+    with client_for(cfg) as client:
+        video_id = upload(client, tmp_path)
+        job_id = client.post("/api/jobs", json={"video_id": video_id}).json()["job_id"]
+    assert run_available(cfg) == 1
+    connection = open_db(cfg)
+    past = iso(datetime.now(UTC) - timedelta(days=1))
+    connection.execute("UPDATE jobs SET finished_at=? WHERE id=?", (past, job_id))
+    connection.close()
+    assert cycle(cfg) == 0
+    connection = open_db(cfg)
+    assert get_job(connection, job_id) is None
+    assert get_video(connection, video_id) is None
+    connection.close()
+    assert not video_dir(tmp_path, video_id).exists()
+    assert not job_dir(tmp_path, job_id).exists()
+
+
+def test_main_sleeps_when_idle_and_does_not_swallow_system_exit(monkeypatch):
+    calls = {"n": 0}
+
+    def fake_cycle(_settings, **_kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("boom")
+        if calls["n"] == 2:
+            return 1
+        raise SystemExit(2)
+
+    slept = []
+    monkeypatch.setattr("backend.app.worker.cycle", fake_cycle)
+    monkeypatch.setattr("backend.app.worker.time.sleep", lambda seconds: slept.append(seconds))
+    with pytest.raises(SystemExit):
+        main()
+    assert slept == [0.5]
