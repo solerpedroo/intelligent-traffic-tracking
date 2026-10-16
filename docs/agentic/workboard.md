@@ -1,14 +1,13 @@
 # Workboard
 
-Estado em 2026-10-15: Ondas 0–6 concluídas. Onda 7 bloqueada no baseline real.
+Estado em 2026-10-16: Ondas 0–7 concluídas. Onda 8 proposta.
 Fonte única de progresso por onda. Evidências ficam nos cartões.
 
 ## Próxima tarefa
 
-Onda 7 — avaliação. Conversores, protocolo e TrackEval sintético estão no
-cartão. O baseline real está bloqueado: o zip oficial em
-`vatic2.stanford.edu` não respondeu em 2026-10-15; splits seguem sem hash.
-Não iniciar a Onda 8 antes desse baseline.
+Onda 8 — experimentos A/B/C. O baseline da Onda 7 está em
+[evaluation.md](../evaluation.md). Não ajustar limiar no teste
+`MOT15-PETS09-S2L1`. Contagem segue sem anotação de cruzamento.
 
 ## Ondas
 
@@ -19,7 +18,7 @@ Não iniciar a Onda 8 antes desse baseline.
 - **4 — Linhas, direção e contagem:** `done`; responsável Codex; [cartão](tasks/wave-4-counting.md).
 - **5 — ROI, permanência e heatmaps:** `done`; responsável Codex; [cartão](tasks/wave-5-zones-heatmaps.md).
 - **6 — Exports e integridade do núcleo:** `done`; responsável Cursor; [cartão](tasks/wave-6-exports.md).
-- **7 — Avaliação e benchmark:** `blocked`; responsável Cursor; [cartão](tasks/wave-7-evaluation.md).
+- **7 — Avaliação e benchmark:** `done`; responsável Cursor; [cartão](tasks/wave-7-evaluation.md).
 - **8 — Experimentos A/B/C:** `proposed`; responsável não atribuído; [cartão](tasks/wave-8-experiments.md).
 - **9 — API, worker e SQLite:** `proposed`; responsável não atribuído; [cartão](tasks/wave-9-jobs-api.md).
 - **10 — Workspace, editor e viewer:** `proposed`; responsável não atribuído; [cartão](tasks/wave-10-web-workspace.md).
