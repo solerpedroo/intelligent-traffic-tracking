@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { ButtonLink, buttonClassName } from "@/components/ui/button";
 import {
   ApiError,
   artifactUrl,
@@ -101,15 +101,17 @@ export function Viewer({ jobId }: { jobId: string }) {
     <main>
       <h1>Tracking viewer</h1>
       <p>
-        <Link href="/jobs">Back to jobs</Link>
+        <ButtonLink href="/jobs" variant="ghost" size="sm">
+          Back to jobs
+        </ButtonLink>
       </p>
       {error ? <p role="alert">{error}</p> : null}
       {!job ? <p role="status">Loading job…</p> : null}
       {job?.state === "completed" ? (
         <p>
-          <Link href={`/analytics?job=${job.job_id}`}>
+          <ButtonLink href={`/analytics?job=${job.job_id}`} variant="secondary">
             Open analytics for this job
-          </Link>
+          </ButtonLink>
         </p>
       ) : null}
       {job ? (
@@ -228,15 +230,20 @@ export function Viewer({ jobId }: { jobId: string }) {
             <ul>
               {DOWNLOADS.map(([name, label]) => (
                 <li key={name}>
-                  <a href={artifactUrl(job.job_id, name)}>{label}</a>
+                  <a
+                    className={buttonClassName("secondary", "sm")}
+                    href={artifactUrl(job.job_id, name)}
+                  >
+                    {label}
+                  </a>
                 </li>
               ))}
             </ul>
           </section>
           <p>
-            <Link href={`/workspace?video=${job.video_id}`}>
+            <ButtonLink href={`/workspace?video=${job.video_id}`}>
               Reprocess this video as a new job
-            </Link>
+            </ButtonLink>
           </p>
         </>
       ) : null}
