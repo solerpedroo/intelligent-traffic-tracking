@@ -1,8 +1,11 @@
 """One active job per process. The API never calls this during a request."""
 
+import time
+
 from backend.app.repository import (
     cancel_requested,
     claim_next,
+    cleanup_expired,
     finish,
     now,
     open_db,
@@ -65,6 +68,8 @@ def execute(settings, job, *, processor=None) -> None:
         finish(connection, job_id, state, now(), error.code, str(error))
     except OSError as error:
         finish(connection, job_id, "failed", now(), "disk_error", str(error))
+    except Exception as error:
+        finish(connection, job_id, "failed", now(), "worker_error", str(error))
     finally:
         connection.close()
 
@@ -105,12 +110,26 @@ def recover(settings) -> int:
         connection.close()
 
 
+def cycle(settings, *, processor=None, max_jobs: int = 1) -> int:
+    """Recover stale jobs, run queued work, then delete expired results."""
+    try:
+        claimed = run_available(settings, processor=processor, max_jobs=max_jobs)
+    finally:
+        cleanup_expired(settings, now())
+    return claimed
+
+
 def main() -> None:
     from backend.app.core.config import Settings
 
     settings = Settings()
     while True:
-        run_available(settings, max_jobs=1)
+        try:
+            claimed = cycle(settings)
+        except Exception:
+            claimed = 0
+        if claimed == 0:
+            time.sleep(0.5)
 
 
 if __name__ == "__main__":
