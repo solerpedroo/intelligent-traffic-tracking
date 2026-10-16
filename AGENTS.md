@@ -2,7 +2,7 @@
 
 ## Estado e início de sessão
 
-Ondas 0–6 concluídas. Onda 7 bloqueada no baseline real. Consulte o estado
+Ondas 0–7 concluídas. Próxima: Onda 8. Consulte o estado
 atual em [docs/agentic/workboard.md](docs/agentic/workboard.md).
 
 1. Leia [o escopo](docs/project-scope.md), [a análise](docs/scope-analysis.md)
@@ -88,4 +88,4 @@ Exports: `--no-annotated-video` preserva CSV/JSON/NPZ e registra aviso. Falha de
 codec ou overlay não publica o MP4 e não apaga os números. Ver ADR-013.
 Avaliação: `scripts/evaluate.py` com o protocolo em experiments/configs.
 Sem split congelado a CLI recusa benchmark. Ver docs/evaluation.md e ADR-014.
-Próxima tarefa: desbloquear [wave-7-evaluation](docs/agentic/tasks/wave-7-evaluation.md).
+Próxima tarefa: [wave-8-experiments](docs/agentic/tasks/wave-8-experiments.md).
