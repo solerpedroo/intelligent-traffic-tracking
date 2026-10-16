@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GeometryEditor } from "@/components/geometry-editor";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { LabeledSelect } from "@/components/ui/select";
 import {
   ApiError,
   createJob,
@@ -127,9 +128,9 @@ export function Workspace() {
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
         </label>
-        <button type="button" onClick={onUpload}>
+        <Button type="button" onClick={onUpload}>
           Upload
-        </button>
+        </Button>
         {video ? (
           <p>
             {video.filename} · {video.width}×{video.height}
@@ -142,41 +143,30 @@ export function Workspace() {
       {draft && catalog ? (
         <form className="panel" onSubmit={onStart}>
           <h2>Configuration</h2>
-          <label>
-            Detector
-            <select
-              value={draft.detectorModelId}
-              onChange={(event) =>
-                setDraft({ ...draft, detectorModelId: event.target.value })
-              }
-            >
-              <option value="">None</option>
-              {catalog.models.map((model) => (
-                <option key={model.model_id} value={model.model_id}>
-                  {model.model_id}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Tracker
-            <select
-              value={draft.trackerConfigId}
-              onChange={(event) =>
-                setDraft({ ...draft, trackerConfigId: event.target.value })
-              }
-            >
-              <option value="">None</option>
-              {catalog.tracker_configs.map((preset) => (
-                <option
-                  key={preset.tracker_config_id}
-                  value={preset.tracker_config_id}
-                >
-                  {preset.tracker_config_id}
-                </option>
-              ))}
-            </select>
-          </label>
+          <LabeledSelect
+            label="Detector"
+            value={draft.detectorModelId}
+            placeholder="None"
+            onChange={(detectorModelId) =>
+              setDraft({ ...draft, detectorModelId })
+            }
+            options={catalog.models.map((model) => ({
+              value: model.model_id,
+              label: model.model_id,
+            }))}
+          />
+          <LabeledSelect
+            label="Tracker"
+            value={draft.trackerConfigId}
+            placeholder="None"
+            onChange={(trackerConfigId) =>
+              setDraft({ ...draft, trackerConfigId })
+            }
+            options={catalog.tracker_configs.map((preset) => ({
+              value: preset.tracker_config_id,
+              label: preset.tracker_config_id,
+            }))}
+          />
           <fieldset>
             <legend>Classes</legend>
             {classNames.length === 0 ? (
@@ -276,8 +266,9 @@ export function Workspace() {
             Render annotated video
           </label>
           <div className="actions">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={() =>
                 setDraft({
                   ...draft,
@@ -286,9 +277,10 @@ export function Workspace() {
               }
             >
               Add line
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
               onClick={() =>
                 setDraft({
                   ...draft,
@@ -297,7 +289,7 @@ export function Workspace() {
               }
             >
               Add zone
-            </button>
+            </Button>
           </div>
           {video ? (
             <GeometryEditor
@@ -319,10 +311,12 @@ export function Workspace() {
               }}
             />
           ) : null}
-          <button type="submit">Start job</button>
+          <Button type="submit">Start job</Button>
           {jobId ? (
             <p>
-              <Link href={`/jobs/${jobId}`}>Open this job in the viewer</Link>
+              <ButtonLink href={`/jobs/${jobId}`} variant="secondary">
+                Open this job in the viewer
+              </ButtonLink>
             </p>
           ) : null}
         </form>
