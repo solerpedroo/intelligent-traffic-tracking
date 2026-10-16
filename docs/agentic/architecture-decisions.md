@@ -66,6 +66,8 @@ referenciar a anterior sem apagar seu histórico.
   antes das execuções. Sem significância e sem ajuste pelo teste.
 - Onda 9: resolvida no contrato HTTP atual. Um worker, SQLite, claim
   transacional, heartbeat e job interrompido vira `failed`.
+- Onda 10: resolvida por ADR-016. O editor normaliza depois do letterbox e
+  os defaults vêm da API.
 - Onda 12: LICENSE e eventual plano de hospedagem, após verificar termos reais.
 
 ## ADR-006 — Toolchain e contratos da fundação
@@ -345,3 +347,15 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
   configurações `TRAFFIC_*`. Limpeza não remove job `queued` ou `running`.
 - Consequência: não há fila distribuída nem vários workers. O contrato está
   em [api-contract.md](../api-contract.md).
+
+## ADR-016 — Workspace e coordenadas de exibição (Onda 10)
+
+- Data: 2026-10-16. Estado: aceito.
+- Decisão: o navegador converte o clique pela caixa exibida, descontando a
+  margem do letterbox, e só então grava x/y em `[0,1]`. Campos numéricos
+  editam os mesmos valores. Os defaults de detector, tracker e classes vêm
+  de `GET /api/processing-defaults`, não de constantes duplicadas na UI.
+- O worker resolve o checkpoint local verificado quando o job tem
+  `detector_model_id`. A criação do job continua sem inferência.
+- Consequência: analytics e comparação de experimentos ficam na Onda 11.
+  O contrato HTTP está em [api-contract.md](../api-contract.md).
