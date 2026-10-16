@@ -44,6 +44,10 @@ novas execuções. Nenhum limiar foi escolhido depois de ver o teste.
   sigma 15 com seeds 0 e 1, e H.264 CRF 40. O ground truth não é deslocado.
   O ruído é a única condição aleatória e foi repetido nas duas seeds.
 
-Três sequências não sustentam significância. O relatório completo está em
+A interface da Onda 11 lê summary e CSV publicados. Contagem ausente,
+ocupação ausente e MOT sem referência aparecem como `not_evaluated`, nunca
+como zero. Dois jobs com vídeo, trecho, geometria, pesos ou hardware
+diferentes não são tratados como ablação. Três sequências não sustentam
+significância. O relatório completo está em
 `experiments/reports/wave8-summary.json` e a figura do teste em
 `experiments/reports/wave8-hota.svg`. Contagem continua sem anotação de linha.
