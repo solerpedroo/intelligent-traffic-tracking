@@ -3,7 +3,7 @@
 Traffic video analysis with object detection, multi-object tracking, auditable
 line crossing counts, zone analytics, and reproducible scientific evaluation.
 
-**Status:** Waves 0–6 implemented. Wave 7 evaluation tools are in place; the real benchmark is blocked until test splits are frozen.
+**Status:** Waves 0–7 implemented. The frozen test sequence is MOT15 PETS09-S2L1. Counting has no crossing labels on that set.
 
 The foundation includes an independent Python package, validated data contracts,
 a versioned model catalog, FastAPI liveness, and a Next.js shell with API status.
@@ -284,6 +284,6 @@ uv sync --locked --extra api --extra video --extra evaluation
 
 Detection mAP, crossing events, and timing summaries are separate from HOTA/IDF1/MOTA.
 TrackEval runs only when identity ground truth and the `evaluation` extra are present.
-The committed split file is not frozen, so the command exits 2 unless
-`--allow-development` is set, and that report is not a benchmark.
+The frozen test sequence is `MOT15-PETS09-S2L1`. Other sequences exit 2 unless
+`--allow-development` is set, and that report is not the benchmark.
 See [evaluation](docs/evaluation.md) and [methodology](docs/methodology.md).
