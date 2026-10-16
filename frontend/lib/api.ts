@@ -54,6 +54,30 @@ export function artifactUrl(jobId: string, name: string): string {
   return `${getApiBaseUrl()}/api/jobs/${encodeURIComponent(jobId)}/artifacts/${encodeURIComponent(name)}`;
 }
 
+export function heatmapPreviewUrl(jobId: string, name: string): string {
+  return `${getApiBaseUrl()}/api/jobs/${encodeURIComponent(jobId)}/heatmaps/${encodeURIComponent(name)}`;
+}
+
+export async function fetchArtifactText(
+  jobId: string,
+  name: string,
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const response = await fetch(artifactUrl(jobId, name), {
+    cache: "no-store",
+    signal,
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      "http_error",
+      `Request failed (${response.status})`,
+    );
+  }
+  return response.text();
+}
+
 async function readBody(response: Response): Promise<unknown> {
   if (!response.ok) {
     let errorCode = "http_error";
