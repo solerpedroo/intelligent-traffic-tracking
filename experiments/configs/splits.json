@@ -1,24 +1,24 @@
 {
   "schema_version": "1.0",
-  "test_split_frozen": false,
+  "test_split_frozen": true,
   "sequences": [
     {
-      "sequence_id": "SDD-NEXUS-0",
+      "sequence_id": "MOT15-TUD-Stadtmitte",
       "split": "development",
-      "sha256": null,
-      "labels": []
+      "sha256": "2a3fc30d3600f160844f0632ad45c4c5120213e1cfc170bf38cfa11d2161dbc3",
+      "labels": ["detection", "mot"]
     },
     {
-      "sequence_id": "SDD-DEATHCIRCLE-0",
+      "sequence_id": "MOT15-KITTI-17",
       "split": "validation",
-      "sha256": null,
-      "labels": []
+      "sha256": "43a6219940ba0709b9ceef96c108a40f266cd283ed22e214c018596716f928ef",
+      "labels": ["detection", "mot"]
     },
     {
-      "sequence_id": "SDD-GATES-0",
+      "sequence_id": "MOT15-PETS09-S2L1",
       "split": "test",
-      "sha256": null,
-      "labels": []
+      "sha256": "5e9eac72c4dc00329e9f3686b6ed6f5866d4277fd812d96186061f71ead6da7b",
+      "labels": ["detection", "mot"]
     }
   ]
 }
