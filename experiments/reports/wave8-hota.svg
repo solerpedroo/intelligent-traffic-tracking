@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="260">
+<rect width="100%" height="100%" fill="white"/>
+<text x="8" y="28" font-size="11" font-family="sans-serif">baseline catalog-defaults MOT15-PETS09-S2L1</text>
+<rect x="320" y="16" width="419" height="14" fill="#1d4e89"/>
+<text x="747" y="28" font-size="11">0.574</text>
+<text x="8" y="50" font-size="11" font-family="sans-serif">A buffer-10 MOT15-PETS09-S2L1</text>
+<rect x="320" y="38" width="420" height="14" fill="#1d4e89"/>
+<text x="748" y="50" font-size="11">0.574</text>
+<text x="8" y="72" font-size="11" font-family="sans-serif">A buffer-60 MOT15-PETS09-S2L1</text>
+<rect x="320" y="60" width="419" height="14" fill="#1d4e89"/>
+<text x="747" y="72" font-size="11">0.574</text>
+<text x="8" y="94" font-size="11" font-family="sans-serif">A match-0.6 MOT15-PETS09-S2L1</text>
+<rect x="320" y="82" width="325" height="14" fill="#1d4e89"/>
+<text x="653" y="94" font-size="11">0.446</text>
+<text x="8" y="116" font-size="11" font-family="sans-serif">A match-0.9 MOT15-PETS09-S2L1</text>
+<rect x="320" y="104" width="401" height="14" fill="#1d4e89"/>
+<text x="729" y="116" font-size="11">0.549</text>
+<text x="8" y="138" font-size="11" font-family="sans-serif">C brightness-0.6 MOT15-PETS09-S2L1</text>
+<rect x="320" y="126" width="402" height="14" fill="#1d4e89"/>
+<text x="730" y="138" font-size="11">0.550</text>
+<text x="8" y="160" font-size="11" font-family="sans-serif">C blur-sigma-1.5 MOT15-PETS09-S2L1</text>
+<rect x="320" y="148" width="353" height="14" fill="#1d4e89"/>
+<text x="681" y="160" font-size="11">0.483</text>
+<text x="8" y="182" font-size="11" font-family="sans-serif">C noise-sigma-15-seed-0 MOT15-PETS09-S2L1</text>
+<rect x="320" y="170" width="402" height="14" fill="#1d4e89"/>
+<text x="730" y="182" font-size="11">0.550</text>
+<text x="8" y="204" font-size="11" font-family="sans-serif">C noise-sigma-15-seed-1 MOT15-PETS09-S2L1</text>
+<rect x="320" y="192" width="404" height="14" fill="#1d4e89"/>
+<text x="732" y="204" font-size="11">0.553</text>
+<text x="8" y="226" font-size="11" font-family="sans-serif">C h264-crf-40 MOT15-PETS09-S2L1</text>
+<rect x="320" y="214" width="377" height="14" fill="#1d4e89"/>
+<text x="705" y="226" font-size="11">0.515</text>
+</svg>
