@@ -12,5 +12,5 @@ export default function JobViewerPage() {
         <p role="alert">Job id is missing.</p>
       </main>
     );
-  return <Viewer jobId={jobId} />;
+  return <Viewer key={jobId} jobId={jobId} />;
 }
