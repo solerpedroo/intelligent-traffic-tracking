@@ -68,6 +68,7 @@ referenciar a anterior sem apagar seu histórico.
   transacional, heartbeat e job interrompido vira `failed`.
 - Onda 10: resolvida por ADR-016. O editor normaliza depois do letterbox e
   os defaults vêm da API.
+- Onda 11: resolvida por ADR-017. A interface só mostra artefatos publicados.
 - Onda 12: LICENSE e eventual plano de hospedagem, após verificar termos reais.
 
 ## ADR-006 — Toolchain e contratos da fundação
@@ -359,3 +360,14 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
   `detector_model_id`. A criação do job continua sem inferência.
 - Consequência: analytics e comparação de experimentos ficam na Onda 11.
   O contrato HTTP está em [api-contract.md](../api-contract.md).
+
+## ADR-017 — Números da interface (Onda 11)
+
+- Data: 2026-10-16. Estado: aceito.
+- Decisão: analytics, comparação e metodologia leem summary, CSV e manifest
+  do job. Métrica sem artefato ou sem ground truth fica `not_evaluated`.
+  Zero só aparece quando o export publica zero. Jobs com vídeo, trecho,
+  geometria, pesos ou hardware diferentes não são ablação controlada.
+- Previews de heatmap são PNG com nome simples dentro de `heatmaps/`.
+- Consequência: a interface não estima congestionamento nem significância.
+  O texto está em [methodology.md](../methodology.md).
