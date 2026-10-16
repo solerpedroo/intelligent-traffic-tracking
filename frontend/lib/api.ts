@@ -229,6 +229,9 @@ export async function createJob(
 }
 
 export async function fetchJobs(signal?: AbortSignal): Promise<JobPage> {
+  // The jobs API returns this page newest first (created_at descending).
+  // Home "Recent jobs" and the jobs board display that page as received.
+  // The sort is a safety net if a payload is still oldest-first.
   const response = await fetch(
     `${getApiBaseUrl()}/api/jobs?limit=20&offset=0`,
     {
@@ -241,7 +244,9 @@ export async function fetchJobs(signal?: AbortSignal): Promise<JobPage> {
     throw new Error("Unexpected job list");
   }
   return {
-    items: data.items.map(parseJob),
+    items: data.items
+      .map(parseJob)
+      .sort((left, right) => right.created_at.localeCompare(left.created_at)),
     total: Number(data.total ?? 0),
     limit: Number(data.limit ?? 20),
     offset: Number(data.offset ?? 0),
@@ -273,13 +278,44 @@ export async function cancelJob(
   return parseJob(await readBody(response));
 }
 
+const TABLE_PAGE_SIZE = 100;
+const TABLE_ROW_CAP = 1000;
+
 export async function fetchTable(
   jobId: string,
   kind: "events" | "tracks",
   signal?: AbortSignal,
 ): Promise<TablePage> {
+  const items: Record<string, string>[] = [];
+  let total = 0;
+  let offset = 0;
+  while (items.length < TABLE_ROW_CAP) {
+    const limit = Math.min(TABLE_PAGE_SIZE, TABLE_ROW_CAP - items.length);
+    const page = await fetchTablePage(jobId, kind, limit, offset, signal);
+    total = page.total;
+    items.push(...page.items);
+    offset += page.items.length;
+    if (
+      page.items.length === 0 ||
+      page.items.length < limit ||
+      offset >= total
+    ) {
+      break;
+    }
+  }
+  if (items.length > TABLE_ROW_CAP) items.length = TABLE_ROW_CAP;
+  return { items, total, limit: items.length, offset: 0 };
+}
+
+async function fetchTablePage(
+  jobId: string,
+  kind: "events" | "tracks",
+  limit: number,
+  offset: number,
+  signal?: AbortSignal,
+): Promise<TablePage> {
   const response = await fetch(
-    `${getApiBaseUrl()}/api/jobs/${encodeURIComponent(jobId)}/${kind}?limit=100&offset=0`,
+    `${getApiBaseUrl()}/api/jobs/${encodeURIComponent(jobId)}/${kind}?limit=${limit}&offset=${offset}`,
     { cache: "no-store", signal },
   );
   const data = await readBody(response);
@@ -295,8 +331,8 @@ export async function fetchTable(
         ),
       ),
     total: Number(data.total ?? 0),
-    limit: Number(data.limit ?? 100),
-    offset: Number(data.offset ?? 0),
+    limit: Number(data.limit ?? limit),
+    offset: Number(data.offset ?? offset),
   };
 }
 
