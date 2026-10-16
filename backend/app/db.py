@@ -51,14 +51,25 @@ def connect(database: Path) -> sqlite3.Connection:
 
 
 def migrate(connection: sqlite3.Connection) -> None:
-    connection.execute("CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY)")
-    query = "SELECT COALESCE(MAX(version), 0) FROM schema_migrations"
-    current = connection.execute(query).fetchone()[0]
-    for version, script in enumerate(MIGRATIONS, start=1):
-        if version <= current:
-            continue
-        connection.executescript(script)
-        connection.execute("INSERT INTO schema_migrations (version) VALUES (?)", (version,))
+    connection.execute("BEGIN IMMEDIATE")
+    try:
+        connection.execute(
+            "CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY)"
+        )
+        query = "SELECT COALESCE(MAX(version), 0) FROM schema_migrations"
+        current = connection.execute(query).fetchone()[0]
+        for version, script in enumerate(MIGRATIONS, start=1):
+            if version <= current:
+                continue
+            for statement in script.split(";"):
+                statement = statement.strip()
+                if statement:
+                    connection.execute(statement)
+            connection.execute("INSERT INTO schema_migrations (version) VALUES (?)", (version,))
+        connection.execute("COMMIT")
+    except Exception:
+        connection.execute("ROLLBACK")
+        raise
 
 
 def database_path(data_dir: Path) -> Path:
