@@ -1,0 +1,180 @@
+{
+  "schema_version": "1.0",
+  "sequence_id": "MOT15-TUD-Stadtmitte",
+  "claim": "development_not_benchmark",
+  "benchmark_eligible": false,
+  "protocol_sha256": "c46067b1e91eff97ab3123b047da7b8ec8ccf6cbc0ee630670d2097149450937",
+  "video_sha256": "2a3fc30d3600f160844f0632ad45c4c5120213e1cfc170bf38cfa11d2161dbc3",
+  "detection": {
+    "status": "evaluated",
+    "reason": null,
+    "scale": "all",
+    "mean_average_precision_50_95": 0.3582147781079647,
+    "average_precision_by_class": {
+      "0": 0.3582147781079647
+    },
+    "operating_point_iou_0_5": {
+      "0": {
+        "precision": 0.7952755905511811,
+        "recall": 0.8737024221453287,
+        "true_positives": 1010,
+        "false_positives": 260,
+        "false_negatives": 146,
+        "ground_truth": 1156
+      }
+    },
+    "ignored_class_ids": []
+  },
+  "detection_by_scale": {
+    "small": {
+      "status": "not_evaluated",
+      "reason": "no_detection_ground_truth",
+      "scale": "small",
+      "mean_average_precision_50_95": null,
+      "average_precision_by_class": {},
+      "operating_point_iou_0_5": {},
+      "ignored_class_ids": []
+    },
+    "medium": {
+      "status": "evaluated",
+      "reason": null,
+      "scale": "medium",
+      "mean_average_precision_50_95": 0.25992643840460594,
+      "average_precision_by_class": {
+        "0": 0.25992643840460594
+      },
+      "operating_point_iou_0_5": {
+        "0": {
+          "precision": 0.7024691358024692,
+          "recall": 0.7193426042983565,
+          "true_positives": 569,
+          "false_positives": 241,
+          "false_negatives": 222,
+          "ground_truth": 791
+        }
+      },
+      "ignored_class_ids": []
+    },
+    "large": {
+      "status": "evaluated",
+      "reason": null,
+      "scale": "large",
+      "mean_average_precision_50_95": 0.4875585997273246,
+      "average_precision_by_class": {
+        "0": 0.4875585997273246
+      },
+      "operating_point_iou_0_5": {
+        "0": {
+          "precision": 0.7413394919168591,
+          "recall": 0.8794520547945206,
+          "true_positives": 321,
+          "false_positives": 112,
+          "false_negatives": 44,
+          "ground_truth": 365
+        }
+      },
+      "ignored_class_ids": []
+    }
+  },
+  "counting": {
+    "status": "not_evaluated",
+    "reason": "missing_crossing_events"
+  },
+  "mot": {
+    "status": "evaluated",
+    "reason": null,
+    "by_class": [
+      {
+        "status": "evaluated",
+        "reason": null,
+        "class_id": 0,
+        "encoding": "class_mapped_to_motchallenge_pedestrian_id_1",
+        "preprocessing": "disabled",
+        "similarity_iou": 0.5,
+        "HOTA": 0.5912918391307889,
+        "MOTA": 0.7863321799307958,
+        "IDF1": 0.7689497716894977,
+        "IDSW": 9,
+        "note": "Not a MOTChallenge leaderboard score. Distractor preprocessing is disabled."
+      }
+    ],
+    "macro_hota": 0.5912918391307889,
+    "macro_idf1": 0.7689497716894977,
+    "macro_mota": 0.7863321799307958,
+    "id_switches": 9
+  },
+  "performance": {
+    "status": "evaluated",
+    "reason": null,
+    "stages": {
+      "decode_ms": {
+        "mean_ms": 2.057998480448372,
+        "median_ms": 1.8358840000018972,
+        "p95_ms": 3.1634590000066964,
+        "samples": 179
+      },
+      "preprocessing_ms": {
+        "mean_ms": 0.2317230782115055,
+        "median_ms": 0.2329660001123557,
+        "p95_ms": 0.2458500000557251,
+        "samples": 179
+      },
+      "predict_ms": {
+        "mean_ms": 40.95448272066822,
+        "median_ms": 40.47833899994657,
+        "p95_ms": 45.25905000014063,
+        "samples": 179
+      },
+      "inference_ms": {
+        "mean_ms": 38.507568374308505,
+        "median_ms": 37.98931899996205,
+        "p95_ms": 41.30424100003438,
+        "samples": 179
+      },
+      "postprocessing_ms": {
+        "mean_ms": 0.2522366871604726,
+        "median_ms": 0.2502769998500298,
+        "p95_ms": 0.2914990000135731,
+        "samples": 179
+      },
+      "tracking_ms": {
+        "mean_ms": 1.3879595642595748,
+        "median_ms": 1.3324150002063107,
+        "p95_ms": 1.7285719998199056,
+        "samples": 179
+      },
+      "counting_ms": {
+        "mean_ms": 0.0,
+        "median_ms": 0.0,
+        "p95_ms": 0.0,
+        "samples": 179
+      },
+      "analytics_ms": {
+        "mean_ms": 0.0,
+        "median_ms": 0.0,
+        "p95_ms": 0.0,
+        "samples": 179
+      },
+      "render_ms": {
+        "mean_ms": 0.0,
+        "median_ms": 0.0,
+        "p95_ms": 0.0,
+        "samples": 179
+      },
+      "encode_submit_ms": {
+        "mean_ms": 0.0,
+        "median_ms": 0.0,
+        "p95_ms": 0.0,
+        "samples": 179
+      }
+    },
+    "inference_fps": 25.968920973654114,
+    "end_to_end_fps": 17.92433672696529,
+    "elapsed_s": 9.986422522999874,
+    "ram_bytes": null,
+    "vram_bytes": null,
+    "resource_reason": "not_instrumented",
+    "percentile": "nearest_rank_ceil"
+  },
+  "block_reason": "sequence_not_in_frozen_test_split"
+}
