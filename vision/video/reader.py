@@ -30,10 +30,6 @@ def validate_path(path: Path, limits: VideoLimits) -> Path:
         signature = source.read(12)
     if len(signature) < 12 or signature[4:8] != b"ftyp":
         raise VideoError("unsupported_format", "Input must contain an ISO-BMFF ftyp header")
-    if signature[8:12] == b"qt  ":
-        raise VideoError(
-            "unsupported_format", "QuickTime input is not supported in the MP4 baseline"
-        )
     return path
 
 
@@ -61,6 +57,51 @@ def open_input(path: Path, limits: VideoLimits):
         raise VideoError("decode_error", f"FFmpeg could not read the input: {error}") from error
 
 
+def _usable_duration(duration: float) -> float | None:
+    """Positive finite durations are usable. Non-positive values are unknown."""
+    if not isfinite(duration):
+        raise VideoError("invalid_duration", "Reported duration must be positive and finite")
+    if duration <= 0:
+        return None
+    return duration
+
+
+def _reported_duration(container, stream) -> tuple[float | None, str]:
+    """Prefer a positive stream duration, then the container, else unknown.
+
+    A zero or negative stream duration is not a reason to reject the file. Some
+    readable MP4s report 0 there while the container duration, or no duration, is
+    still enough to decode.
+    """
+    if stream.duration is not None:
+        duration = _usable_duration(float(stream.duration * stream.time_base))
+        if duration is not None:
+            return duration, "stream"
+    if container.duration is not None:
+        duration = _usable_duration(float(container.duration / av.time_base))
+        if duration is not None:
+            return duration, "container"
+    return None, "unknown"
+
+
+def reject_display_matrix_rotation(container, stream) -> None:
+    """Reject display-matrix rotation. Used by probe, then the container is closed.
+
+    PyAV 18 does not expose ``AV_PKT_DATA_DISPLAYMATRIX`` on demuxed packets.
+    The matrix shows up as ``frame.rotation`` after the first decoded frame, so
+    probe decodes that frame and upload can fail before a job is queued. Do not
+    call this on a container that will keep decoding: the frame is consumed.
+    A frame that cannot be decoded is ignored; header checks still succeed.
+    """
+    try:
+        frame = next(container.decode(stream))
+    except (StopIteration, av.error.FFmpegError):
+        return
+    rotation = float(frame.rotation)
+    if not isfinite(rotation) or rotation % 360 != 0:
+        raise VideoError("unsupported_geometry", "Rotated video must be normalized before input")
+
+
 def inspect_stream(container, stream, path: Path, limits: VideoLimits) -> VideoMetadata:
     width, height = stream.codec_context.width, stream.codec_context.height
     if width <= 0 or height <= 0 or width * height > limits.max_pixels:
@@ -71,21 +112,14 @@ def inspect_stream(container, stream, path: Path, limits: VideoLimits) -> VideoM
         raise VideoError("unsupported_geometry", "Non-square video pixels are not supported")
     if stream.time_base is None or stream.time_base <= 0:
         raise VideoError("invalid_time_base", "Video stream has no valid time base")
-    # Decode checks frame.rotation too: MP4 rotation may live in frame side data.
+    # The rotate tag is not the display matrix. probe_video checks that separately.
     try:
         rotation = float(stream.metadata.get("rotate", "0"))
     except ValueError as error:
         raise VideoError("unsupported_geometry", "Invalid video rotation metadata") from error
-    if rotation % 360 != 0:
+    if not isfinite(rotation) or rotation % 360 != 0:
         raise VideoError("unsupported_geometry", "Rotated video must be normalized before input")
-    if stream.duration is not None:
-        duration, source = float(stream.duration * stream.time_base), "stream"
-    elif container.duration is not None:
-        duration, source = container.duration / av.time_base, "container"
-    else:
-        duration, source = None, "unknown"
-    if duration is not None and (not isfinite(duration) or duration <= 0):
-        raise VideoError("invalid_duration", "Reported duration must be positive and finite")
+    duration, source = _reported_duration(container, stream)
     if duration is not None and duration > limits.max_duration_s:
         raise VideoError("duration_limit", "Reported video duration exceeds max_duration_s")
     fps = float(stream.average_rate) if stream.average_rate else None
@@ -115,7 +149,9 @@ def inspect_stream(container, stream, path: Path, limits: VideoLimits) -> VideoM
 def probe_video(path: Path, limits: VideoLimits | None = None) -> VideoMetadata:
     limits = limits or VideoLimits()
     with open_input(path, limits) as (container, stream, path):
-        return inspect_stream(container, stream, path, limits)
+        metadata = inspect_stream(container, stream, path, limits)
+        reject_display_matrix_rotation(container, stream)
+        return metadata
 
 
 class VideoReader:
