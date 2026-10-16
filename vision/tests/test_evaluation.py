@@ -64,14 +64,25 @@ def pred_event(timestamp, class_id=2, line_id="gate", direction="A_TO_B"):
     }
 
 
-def test_committed_protocol_and_splits_are_not_a_frozen_benchmark():
+def test_committed_mot15_split_freezes_only_the_static_test_sequence():
     assert PROTOCOL.detection_iou_thresholds[0] == 0.5
     assert PROTOCOL.detection_iou_thresholds[-1] == 0.95
     assert len(PROTOCOL.detection_iou_thresholds) == 10
     assert PROTOCOL.counting_tolerance_s == 0.5
-    assert SPLITS.test_split_frozen is False
-    assert all(item.sha256 is None for item in SPLITS.sequences)
-    assert block_reason(SPLITS, "SDD-GATES-0") == "test_split_not_frozen"
+    assert SPLITS.test_split_frozen is True
+    by_id = {item.sequence_id: item for item in SPLITS.sequences}
+    assert set(by_id) == {
+        "MOT15-TUD-Stadtmitte",
+        "MOT15-KITTI-17",
+        "MOT15-PETS09-S2L1",
+    }
+    assert by_id["MOT15-PETS09-S2L1"].split == "test"
+    assert by_id["MOT15-PETS09-S2L1"].sha256 == (
+        "5e9eac72c4dc00329e9f3686b6ed6f5866d4277fd812d96186061f71ead6da7b"
+    )
+    assert block_reason(SPLITS, "MOT15-PETS09-S2L1") is None
+    assert block_reason(SPLITS, "MOT15-TUD-Stadtmitte") == "sequence_not_in_frozen_test_split"
+    assert block_reason(SPLITS, "SDD-GATES-0") == "sequence_not_in_registry"
 
 
 def test_trackeval_frames_are_one_based_and_keep_gaps(tmp_path):
