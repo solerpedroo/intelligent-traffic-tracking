@@ -1,12 +1,12 @@
 # Workboard
 
-Estado em 2026-10-16: Ondas 0–11 concluídas. Onda 12 proposta.
+Estado em 2026-10-16: Ondas 0–12 concluídas. Sem onda seguinte no plano.
 Fonte única de progresso por onda. Evidências ficam nos cartões.
 
 ## Próxima tarefa
 
-Onda 12 — aceitação e portfólio. Os números da interface estão em
-[methodology.md](../methodology.md).
+O plano do MVP está encerrado. O teste local e os limites estão em
+[mvp-acceptance.md](../mvp-acceptance.md). Não há `LICENSE`.
 
 ## Ondas
 
@@ -22,7 +22,7 @@ Onda 12 — aceitação e portfólio. Os números da interface estão em
 - **9 — API, worker e SQLite:** `done`; responsável Cursor; [cartão](tasks/wave-9-jobs-api.md).
 - **10 — Workspace, editor e viewer:** `done`; responsável Cursor; [cartão](tasks/wave-10-web-workspace.md).
 - **11 — Analytics, comparação e metodologia:** `done`; responsável Cursor; [cartão](tasks/wave-11-analytics.md).
-- **12 — Aceitação e portfólio:** `proposed`; responsável não atribuído; [cartão](tasks/wave-12-acceptance.md).
+- **12 — Aceitação e portfólio:** `done`; responsável Cursor; [cartão](tasks/wave-12-acceptance.md).
 
 ## Convenções
 
