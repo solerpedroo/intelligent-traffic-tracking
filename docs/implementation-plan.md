@@ -1,6 +1,6 @@
 # Intelligent Traffic Tracking — Plano de implementação
 
-Versão: 1.0 · Data: 2026-10-15 · Estado: ondas 0–6 validadas; Onda 7 bloqueada no baseline real.
+Versão: 1.0 · Data: 2026-10-16 · Estado: ondas 0–7 validadas; Onda 8 planejada.
 Fonte de requisitos: [project-scope.md](project-scope.md).
 Interpretação e adaptações: [scope-analysis.md](scope-analysis.md).
 
@@ -491,6 +491,7 @@ de vídeo anotado. Contratos em [tracking.md](tracking.md),
 `vision/pipeline/schemas.py` (ADR-013).
 Evidências nos cartões [0](agentic/tasks/wave-0-foundation.md) a
 [6](agentic/tasks/wave-6-exports.md). Pilotos locais verificam integração.
-A [Onda 7](agentic/tasks/wave-7-evaluation.md) tem protocolo, conversores e
-TrackEval sintético. O baseline real segue bloqueado até hashes e congelamento
-dos splits. Não iniciar a Onda 8 antes disso.
+A [Onda 7](agentic/tasks/wave-7-evaluation.md) mediu o YOLO11n e o ByteTrack
+nas sequências estáticas do MOT15. O teste congelado é `MOT15-PETS09-S2L1`.
+Próxima: [Onda 8](agentic/tasks/wave-8-experiments.md), sem ajustar limiar
+nesse teste.
