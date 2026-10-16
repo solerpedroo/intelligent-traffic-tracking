@@ -1,5 +1,6 @@
 """Local server settings; values are injected into the app factory."""
 
+from pathlib import Path
 from typing import Literal
 
 from pydantic import HttpUrl, field_validator
@@ -14,6 +15,11 @@ class Settings(BaseSettings):
         HttpUrl("http://127.0.0.1:3000"),
     )
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    data_dir: Path = Path("data")
+    max_upload_bytes: int = 512 * 1024 * 1024
+    quota_bytes: int = 2 * 1024 * 1024 * 1024
+    retention_seconds: int = 7 * 24 * 3600
+    stale_after_seconds: int = 30
 
     @field_validator("allowed_origins")
     @classmethod
