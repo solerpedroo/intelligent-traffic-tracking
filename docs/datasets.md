@@ -106,6 +106,15 @@ O gate continua bloqueado: `experiments/configs/splits.json` segue com
 `test_split_frozen: false` e hashes nulos. Nenhum vídeo real novo foi baixado
 nesta onda. O piloto de vehicles não foi reavaliado como benchmark.
 
+Na mesma data, a página oficial
+[cvgl.stanford.edu/projects/uav_data](https://cvgl.stanford.edu/projects/uav_data/)
+ainda aponta o pacote de cerca de 69 GB para
+`http://vatic2.stanford.edu/stanford_campus_dataset.zip`, sob CC BY-NC-SA 3.0.
+O nome `vatic2.stanford.edu` resolve para `171.64.68.58`. Duas tentativas de
+conexão, em HTTP e HTTPS, expiraram após 20 s e 15 s, sem cabeçalho de
+resposta. Não houve download parcial, hash nem auditoria de câmera. Espelhos
+de terceiros não foram usados.
+
 ## Piloto local de crossing — Onda 4
 
 Em 2026-10-15 foi obtido localmente o exemplo público
