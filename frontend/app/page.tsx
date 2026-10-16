@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ApiHealth } from "@/components/api-health";
+import { ButtonLink } from "@/components/ui/button";
 import { ApiError, fetchJobs } from "@/lib/api";
 import type { JobRecord } from "@/types/api";
 
@@ -32,7 +32,7 @@ export default function HomePage() {
     <main>
       <section aria-labelledby="title">
         <p className="kicker">Intelligent Traffic Tracking</p>
-        <h1 id="title">
+        <h1 id="title" className="mt-3 text-4xl text-display sm:text-5xl">
           Understand movement.
           <br />
           Measure with evidence.
@@ -43,8 +43,10 @@ export default function HomePage() {
         </p>
         <ApiHealth />
         <p className="actions">
-          <Link href="/workspace">Open workspace</Link>
-          <Link href="/jobs">View jobs</Link>
+          <ButtonLink href="/workspace">Open workspace</ButtonLink>
+          <ButtonLink href="/jobs" variant="secondary">
+            View jobs
+          </ButtonLink>
         </p>
       </section>
       <section aria-labelledby="recent-title">
@@ -60,9 +62,13 @@ export default function HomePage() {
             <ul>
               {jobs.map((job) => (
                 <li key={job.job_id}>
-                  <Link href={`/jobs/${job.job_id}`}>
+                  <ButtonLink
+                    href={`/jobs/${job.job_id}`}
+                    variant="ghost"
+                    size="sm"
+                  >
                     {job.job_id.slice(0, 8)} · {job.state}
-                  </Link>
+                  </ButtonLink>
                 </li>
               ))}
             </ul>
