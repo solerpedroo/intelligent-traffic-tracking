@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import ValidationError
 
 from backend.app.repository import (
     get_job,
@@ -32,13 +32,6 @@ router = APIRouter()
 
 def error(status: int, code: str, message: str) -> HTTPException:
     return HTTPException(status_code=status, detail={"error_code": code, "error": message})
-
-
-class JobCreate(BaseModel):
-    video_id: str
-    detector_model_id: str | None = None
-    tracker_config_id: str | None = None
-    render_annotated_video: bool = False
 
 
 def install(app, settings) -> None:
@@ -133,10 +126,43 @@ def read_models():
     return catalog.model_dump(mode="json")
 
 
-@router.post("/api/jobs", status_code=202)
-def create_job(body: JobCreate, request: Request):
+@router.get("/api/videos/{video_id}/preview")
+def read_preview(video_id: str, request: Request):
     settings = request.app.state.settings
-    video_id = body.video_id
+    connection = open_db(settings)
+    try:
+        row = get_video(connection, video_id)
+    finally:
+        connection.close()
+    if row is None:
+        raise error(404, "video_not_found", "Video was not found")
+    path = video_dir(settings.data_dir, video_id) / "preview.png"
+    if not row["preview_ready"] or not path.is_file():
+        raise error(404, "preview_unavailable", "Preview frame is not available")
+    return FileResponse(path, media_type="image/png", filename="preview.png")
+
+
+@router.get("/api/processing-defaults")
+def processing_defaults():
+    from vision.contracts import ProcessingConfig
+
+    payload = ProcessingConfig(video_id="example").model_dump(mode="json")
+    payload.pop("video_id", None)
+    payload.pop("schema_version", None)
+    return payload
+
+
+@router.post("/api/jobs", status_code=202)
+async def create_job(request: Request):
+    settings = request.app.state.settings
+    try:
+        raw = await request.json()
+    except Exception as exc:
+        raise error(422, "invalid_job", "Job body must be a JSON object") from exc
+    if not isinstance(raw, dict) or not isinstance(raw.get("video_id"), str):
+        raise error(422, "invalid_job", "video_id is required")
+    raw.setdefault("render_annotated_video", False)
+    video_id = raw["video_id"]
     connection = open_db(settings)
     try:
         video = get_video(connection, video_id)
@@ -145,14 +171,11 @@ def create_job(body: JobCreate, request: Request):
         from vision.contracts import ProcessingConfig
 
         try:
-            config = ProcessingConfig(
-                video_id=video_id,
-                detector_model_id=body.detector_model_id,
-                tracker_config_id=body.tracker_config_id,
-                render_annotated_video=body.render_annotated_video,
-            )
-        except Exception as exc:
-            raise error(422, "invalid_job", str(exc)) from exc
+            config = ProcessingConfig.model_validate_json(json.dumps(raw))
+        except ValidationError as exc:
+            first = exc.errors()[0]["msg"] if exc.errors() else "Job configuration is invalid"
+            message = first
+            raise error(422, "invalid_job", message) from exc
         job_id = uuid4().hex
         insert_job(
             connection,
