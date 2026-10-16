@@ -2,7 +2,7 @@
 
 ## Estado e início de sessão
 
-Ondas 0–9 concluídas. Próxima: Onda 10. Consulte o estado
+Ondas 0–10 concluídas. Próxima: Onda 11. Consulte o estado
 atual em [docs/agentic/workboard.md](docs/agentic/workboard.md).
 
 1. Leia [o escopo](docs/project-scope.md), [a análise](docs/scope-analysis.md)
@@ -88,6 +88,6 @@ Exports: `--no-annotated-video` preserva CSV/JSON/NPZ e registra aviso. Falha de
 codec ou overlay não publica o MP4 e não apaga os números. Ver ADR-013.
 Avaliação: `scripts/evaluate.py` com o protocolo em experiments/configs.
 Sem split congelado a CLI recusa benchmark. Ver docs/evaluation.md e ADR-014.
-Próxima tarefa: [wave-10-web-workspace](docs/agentic/tasks/wave-10-web-workspace.md).
+Próxima tarefa: [wave-11-analytics](docs/agentic/tasks/wave-11-analytics.md).
 Worker de jobs: `python -m backend.app.worker`, separado da API. Ver
 [api-contract.md](docs/api-contract.md).
