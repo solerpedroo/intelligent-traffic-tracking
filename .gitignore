@@ -12,6 +12,9 @@ build/
 
 # Frontend
 node_modules/
+test-results/
+playwright-report/
+blob-report/
 .next/
 out/
 coverage/
