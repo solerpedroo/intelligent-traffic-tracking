@@ -14,6 +14,8 @@ Erros de produto usam `{"error_code", "error"}`. Paginação usa `limit`
 | GET | `/api/health` | 200, liveness |
 | POST | `/api/videos` | 201, corpo binário e header `x-filename` |
 | GET | `/api/videos/{video_id}` | 200, metadados |
+| GET | `/api/videos/{video_id}/preview` | 200, PNG do primeiro frame |
+| GET | `/api/processing-defaults` | 200, defaults do ProcessingConfig |
 | GET | `/api/models` | 200, catálogo sem carregar pesos |
 | POST | `/api/jobs` | 202, `state=queued` |
 | GET | `/api/jobs` | 200, `items` e `total` |
@@ -25,8 +27,12 @@ Erros de produto usam `{"error_code", "error"}`. Paginação usa `limit`
 | GET | `/api/jobs/{job_id}/artifacts/{name}` | 200, nome da lista permitida |
 | GET | `/api/experiments` | 200, jobs `completed` |
 
-`POST /api/jobs` aceita `video_id`, `detector_model_id`, `tracker_config_id` e
-`render_annotated_video`. Reprocessar cria outro `job_id`.
+`POST /api/jobs` aceita o JSON do `ProcessingConfig`, com `video_id` obrigatório.
+Omissão de `render_annotated_video` continua significando `false` nesta rota.
+Geometria entra em `counting.lines` e `analytics.zones`, normalizada em
+`[0,1]`. Reprocessar cria outro `job_id`. O worker procura o checkpoint
+verificado em `TRAFFIC_CHECKPOINT_DIR` (padrão `checkpoints/`). Sem o arquivo,
+o job fica `failed` com `missing_checkpoint`.
 
 ## Estados
 
@@ -53,5 +59,6 @@ não concluído responde 409. Falha de disco fica `failed`, não `completed`.
 
 ## CORS
 
-Métodos GET e POST. Headers `Accept` e `Content-Type`. Origins continuam os
-de `TRAFFIC_ALLOWED_ORIGINS`.
+Métodos GET e POST. Headers `Accept`, `Content-Type` e `x-filename`. Origins
+continuam os de `TRAFFIC_ALLOWED_ORIGINS`. A migração inicial usa transação
+imediata, para duas conexões simultâneas não criarem a tabela duas vezes.
