@@ -151,6 +151,20 @@ video {
   width: min(100%, 960px);
   background: #070b14;
 }
+.bars {
+  list-style: none;
+  padding: 0;
+}
+.bar {
+  display: block;
+  height: 8px;
+  margin: 4px 0 12px;
+  background: var(--accent);
+}
+.heatmap-list img {
+  width: min(100%, 480px);
+  background: #070b14;
+}
 .timeline {
   list-style: none;
   padding: 0;
