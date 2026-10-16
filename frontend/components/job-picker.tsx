@@ -30,6 +30,10 @@ export function useCompletedJobs() {
   return { jobs, error };
 }
 
+export function jobOptionLabel(jobId: string): string {
+  return `${jobId.slice(0, 8)} · ${jobId}`;
+}
+
 export function JobSelect({
   label,
   jobs,
@@ -49,7 +53,7 @@ export function JobSelect({
       onChange={onChange}
       options={jobs.map((job) => ({
         value: job.job_id,
-        label: `${job.job_id.slice(0, 8)} · ${job.video_id.slice(0, 8)}`,
+        label: jobOptionLabel(job.job_id),
       }))}
     />
   );
