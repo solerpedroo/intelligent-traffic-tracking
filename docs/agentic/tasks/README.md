@@ -12,5 +12,6 @@ As ondas [7](wave-7-evaluation.md), [8](wave-8-experiments.md) e
 [11](wave-11-analytics.md) registram baseline, estudos, a API, o workspace
 e os analytics.
 Próximo: [wave-12-acceptance](wave-12-acceptance.md).
-O cartão da onda 12 permanece proposto.
+O cartão da [onda 12](wave-12-acceptance.md) registra o teste local. Não há
+onda seguinte. A `LICENSE` continua sem escolha.
 Estado canônico das ondas: [workboard](../workboard.md).
