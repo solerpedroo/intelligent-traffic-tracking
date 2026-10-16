@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "detector_model_id": "yolo11n-coco",
+  "tracker_config_id": "bytetrack-default",
+  "checkpoint": "checkpoints/yolo11n.pt",
+  "sequences": [
+    {
+      "sequence_id": "MOT15-TUD-Stadtmitte",
+      "split": "development",
+      "video": "data/mot15/prepared/MOT15-TUD-Stadtmitte.mp4",
+      "ground_truth": "data/mot15/prepared/MOT15-TUD-Stadtmitte.json",
+      "baseline_predictions": "artifacts/mot15/TUD-Stadtmitte",
+      "frame_rate": 25,
+      "width": 640,
+      "height": 480
+    },
+    {
+      "sequence_id": "MOT15-KITTI-17",
+      "split": "validation",
+      "video": "data/mot15/prepared/MOT15-KITTI-17.mp4",
+      "ground_truth": "data/mot15/prepared/MOT15-KITTI-17.json",
+      "baseline_predictions": "artifacts/mot15/KITTI-17",
+      "frame_rate": 10,
+      "width": 1224,
+      "height": 370
+    },
+    {
+      "sequence_id": "MOT15-PETS09-S2L1",
+      "split": "test",
+      "video": "data/mot15/prepared/MOT15-PETS09-S2L1.mp4",
+      "ground_truth": "data/mot15/prepared/MOT15-PETS09-S2L1.json",
+      "baseline_predictions": "artifacts/mot15/PETS09-S2L1",
+      "frame_rate": 7,
+      "width": 768,
+      "height": 576
+    }
+  ],
+  "experiment_a": {
+    "question": "How do match threshold and track buffer, changed one at a time, move HOTA and ID switches?",
+    "hypothesis": "A longer buffer can keep occluded tracks, and a looser match can raise incorrect associations.",
+    "conditions": [
+      {"id": "buffer-10", "track_buffer": 10},
+      {"id": "buffer-60", "track_buffer": 60},
+      {"id": "match-0.6", "match_thresh": 0.6},
+      {"id": "match-0.9", "match_thresh": 0.9}
+    ]
+  },
+  "experiment_b": {
+    "question": "Does tracking degrade as annotated object concentration rises?",
+    "hypothesis": "Higher annotated occupancy can lower detection recall. Occlusion is not labeled in this MOT15 extract.",
+    "sequence_bins": {"low_below": 5.0, "high_from": 8.0},
+    "frame_bins": [
+      {"name": "low", "min_objects": 0, "max_objects": 4},
+      {"name": "medium", "min_objects": 5, "max_objects": 8},
+      {"name": "high", "min_objects": 9, "max_objects": null}
+    ],
+    "occlusion": "not_available"
+  },
+  "experiment_c": {
+    "question": "How do explicit visual degradations change detection and identity scores?",
+    "hypothesis": "Blur, noise, darkness, and heavier compression can lower recall and raise identity breaks.",
+    "carrier_crf": 18,
+    "conditions": [
+      {"id": "brightness-0.6", "kind": "brightness", "scale": 0.6},
+      {"id": "blur-sigma-1.5", "kind": "blur", "sigma_px": 1.5},
+      {"id": "noise-sigma-15-seed-0", "kind": "noise", "sigma": 15, "seed": 0},
+      {"id": "noise-sigma-15-seed-1", "kind": "noise", "sigma": 15, "seed": 1},
+      {"id": "h264-crf-40", "kind": "compression", "crf": 40}
+    ]
+  }
+}
