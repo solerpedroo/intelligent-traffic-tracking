@@ -85,6 +85,7 @@ def process_video(
     cfr_fallback_fps: float | None = None,
     checkpoint: Path | None = None,
     detector: DetectorAdapter | None = None,
+    cancel_check=None,
 ) -> dict:
     """Decode original indices, optionally detect, export [start_s,end_s).
 
@@ -324,6 +325,8 @@ def process_video(
                         break
                     decode_ms = (perf_counter() - before) * 1000
                     totals["decode_ms"] += decode_ms
+                    if cancel_check is not None:
+                        cancel_check()
                     if frame.frame_index == 0:
                         try:
                             ok, encoded = cv2.imencode(".png", frame.pixels)
