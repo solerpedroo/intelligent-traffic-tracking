@@ -7,6 +7,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import ValidationError
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.repository import (
     get_job,
@@ -49,33 +50,47 @@ def install(app, settings) -> None:
     app.include_router(router)
 
 
-@router.post("/api/videos", status_code=201)
-async def upload_video(request: Request):
-    settings = request.app.state.settings
-    if directory_size(settings.data_dir) >= settings.quota_bytes:
-        raise error(413, "quota_exceeded", "Storage quota is full")
-    payload = await request.body()
-    if len(payload) > settings.max_upload_bytes:
-        raise error(413, "upload_too_large", "Video exceeds the upload limit")
-    if not payload:
-        raise error(422, "invalid_video", "Video file is empty")
+def _declared_content_length(request: Request) -> int | None:
+    raw = request.headers.get("content-length")
+    if raw is None:
+        return None
+    try:
+        declared = int(raw)
+    except ValueError:
+        return None
+    if declared < 0:
+        return None
+    return declared
+
+
+def _discard_upload(source, directory) -> None:
+    source.unlink(missing_ok=True)
+    directory.rmdir()
+
+
+def _store_video(settings, payload: bytes, filename: str) -> dict:
     video_id = uuid4().hex
     directory = video_dir(settings.data_dir, video_id)
     directory.mkdir(parents=True, exist_ok=False)
     source = directory / "source.mp4"
-    source.write_bytes(payload)
     try:
+        source.write_bytes(payload)
         from vision.video import probe_video
         from vision.video.errors import VideoError
+        from vision.video.models import VideoLimits
 
-        metadata = probe_video(source)
+        metadata = probe_video(
+            source,
+            VideoLimits(max_bytes=settings.max_upload_bytes),
+        )
     except VideoError as exc:
-        source.unlink(missing_ok=True)
-        directory.rmdir()
+        _discard_upload(source, directory)
         raise error(422, exc.code, str(exc)) from exc
+    except OSError as exc:
+        _discard_upload(source, directory)
+        raise error(507, "disk_error", "Video could not be stored") from exc
     except Exception as exc:
-        source.unlink(missing_ok=True)
-        directory.rmdir()
+        _discard_upload(source, directory)
         raise error(422, "invalid_video", "Video could not be probed") from exc
     preview_ready = 0
     try:
@@ -93,7 +108,7 @@ async def upload_video(request: Request):
         preview_ready = 0
     record = {
         "id": video_id,
-        "filename": request.headers.get("x-filename", "video.mp4").rsplit("/", 1)[-1],
+        "filename": filename.rsplit("/", 1)[-1],
         "sha256": hashlib.sha256(payload).hexdigest(),
         "size_bytes": len(payload),
         "width": metadata.width,
@@ -110,6 +125,26 @@ async def upload_video(request: Request):
     finally:
         connection.close()
     return video_payload(record)
+
+
+@router.post("/api/videos", status_code=201)
+async def upload_video(request: Request):
+    settings = request.app.state.settings
+    declared = _declared_content_length(request)
+    if declared is not None and declared > settings.max_upload_bytes:
+        raise error(413, "upload_too_large", "Video exceeds the upload limit")
+    used = directory_size(settings.data_dir)
+    if declared is not None and used + declared > settings.quota_bytes:
+        raise error(413, "quota_exceeded", "Storage quota is full")
+    payload = await request.body()
+    if len(payload) > settings.max_upload_bytes:
+        raise error(413, "upload_too_large", "Video exceeds the upload limit")
+    if used + len(payload) > settings.quota_bytes:
+        raise error(413, "quota_exceeded", "Storage quota is full")
+    if not payload:
+        raise error(422, "invalid_video", "Video file is empty")
+    filename = request.headers.get("x-filename", "video.mp4")
+    return await run_in_threadpool(_store_video, settings, payload, filename)
 
 
 @router.get("/api/videos/{video_id}")
