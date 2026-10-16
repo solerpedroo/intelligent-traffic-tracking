@@ -11,6 +11,7 @@ from backend.app.repository import (
 )
 from backend.app.storage import job_dir
 from vision.contracts import ProcessingConfig
+from vision.contracts.errors import VisionError
 from vision.video.errors import VideoError
 
 
@@ -38,21 +39,44 @@ def execute(settings, job, *, processor=None) -> None:
                 output,
                 config=config,
                 cancel_check=should_cancel,
+                checkpoint=resolve_checkpoint(settings, config),
+                progress=lambda count: progress(count, job["total_frames"], "processing"),
             )
         else:
             summary = processor(video, output, config, progress, should_cancel)
         if cancel_requested(connection, job_id):
             finish(connection, job_id, "cancelled", now(), "cancelled", "Cancellation requested")
             return
-        status = summary.get("status", "completed") if isinstance(summary, dict) else "completed"
-        finish(connection, job_id, "completed", now(), summary_status=status)
-    except VideoError as error:
+        status = "completed"
+        frames = None
+        if isinstance(summary, dict):
+            status = summary.get("status", "completed")
+            frames = summary.get("selected_frames")
+        finish(
+            connection,
+            job_id,
+            "completed",
+            now(),
+            summary_status=status,
+            processed_frames=frames,
+        )
+    except VisionError as error:
         state = "cancelled" if error.code == "cancelled" else "failed"
         finish(connection, job_id, state, now(), error.code, str(error))
     except OSError as error:
         finish(connection, job_id, "failed", now(), "disk_error", str(error))
     finally:
         connection.close()
+
+
+def resolve_checkpoint(settings, config: ProcessingConfig):
+    if config.detector_model_id is None:
+        return None
+    from vision.configs import load_catalog
+    from vision.detectors.checkpoint import verify_checkpoint
+
+    model = load_catalog().get_model(config.detector_model_id)
+    return verify_checkpoint(settings.checkpoint_dir / model.filename, model)
 
 
 def run_available(settings, *, processor=None, max_jobs: int = 1) -> int:
