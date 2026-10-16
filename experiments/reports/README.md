@@ -1,5 +1,5 @@
 # Relatórios locais
 
-Esta pasta não versiona resultados. `scripts/evaluate.py` grava aqui somente
-quando alguém passa `--output`. Um JSON com `benchmark_eligible: false` é
-desenvolvimento ou bloqueio, não baseline científico.
+Os três JSON `MOT15-*.json` são o baseline medido em 2026-10-16.
+`benchmark_eligible: true` aparece só em `MOT15-PETS09-S2L1`.
+Os outros relatórios desta pasta continuam locais e fora do Git.
