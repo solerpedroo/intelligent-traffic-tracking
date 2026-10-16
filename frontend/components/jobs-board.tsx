@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { ApiError, cancelJob, fetchJobs } from "@/lib/api";
 import { shouldKeepPolling } from "@/lib/polling";
 import type { JobRecord } from "@/types/api";
@@ -64,7 +64,8 @@ export function JobsBoard() {
       {error ? <p role="alert">{error}</p> : null}
       {jobs.length === 0 ? (
         <p>
-          No jobs yet. <Link href="/workspace">Open the workspace</Link> to
+          No jobs yet.{" "}
+          <ButtonLink href="/workspace">Open the workspace</ButtonLink> to
           upload a video.
         </p>
       ) : (
@@ -82,9 +83,13 @@ export function JobsBoard() {
             {jobs.map((job) => (
               <tr key={job.job_id}>
                 <td>
-                  <Link href={`/jobs/${job.job_id}`}>
+                  <ButtonLink
+                    href={`/jobs/${job.job_id}`}
+                    variant="ghost"
+                    size="sm"
+                  >
                     {job.job_id.slice(0, 8)}
-                  </Link>
+                  </ButtonLink>
                 </td>
                 <td>
                   {job.state}
@@ -97,11 +102,22 @@ export function JobsBoard() {
                 </td>
                 <td>
                   {job.state === "queued" || job.state === "running" ? (
-                    <button type="button" onClick={() => onCancel(job.job_id)}>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => onCancel(job.job_id)}
+                    >
                       Cancel
-                    </button>
+                    </Button>
                   ) : (
-                    <Link href={`/jobs/${job.job_id}`}>Open viewer</Link>
+                    <ButtonLink
+                      href={`/jobs/${job.job_id}`}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Open viewer
+                    </ButtonLink>
                   )}
                 </td>
               </tr>
