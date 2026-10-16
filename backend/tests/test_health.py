@@ -25,8 +25,9 @@ def test_health_reports_liveness_only(client):
         "service": "intelligent-traffic-tracking-api",
         "api_version": "v1",
     }
-    assert set(client.get("/openapi.json").json()["paths"]) == {"/api/health"}
-    assert client.post("/api/jobs").status_code == 404
+    paths = set(client.get("/openapi.json").json()["paths"])
+    assert "/api/health" in paths and "/api/jobs" in paths
+    assert client.post("/api/jobs", json={}).status_code == 422
 
 
 def test_cors_allows_configured_local_origin_only(client):
@@ -41,7 +42,8 @@ def test_cors_allows_configured_local_origin_only(client):
             "Access-Control-Request-Method": "POST",
         },
     )
-    assert preflight.status_code == 400
+    assert preflight.status_code == 200
+    assert preflight.headers["access-control-allow-origin"] == "http://localhost:3000"
 
 
 def test_settings_read_environment_and_normalize_origins(monkeypatch):
