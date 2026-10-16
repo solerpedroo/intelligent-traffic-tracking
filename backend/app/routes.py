@@ -23,6 +23,7 @@ from backend.app.repository import (
 from backend.app.storage import (
     artifact_path,
     directory_size,
+    heatmap_preview_path,
     job_dir,
     video_dir,
 )
@@ -263,6 +264,15 @@ def read_tracks(
 ):
     _job_or_404(request, job_id)
     return _page_csv(request, job_id, "tracks.csv", limit, offset)
+
+
+@router.get("/api/jobs/{job_id}/heatmaps/{name}")
+def download_heatmap(job_id: str, name: str, request: Request):
+    _job_or_404(request, job_id)
+    path = heatmap_preview_path(job_dir(request.app.state.settings.data_dir, job_id), name)
+    if path is None:
+        raise error(404, "artifact_not_allowed", "Heatmap preview is not available")
+    return FileResponse(path, media_type="image/png", filename=name)
 
 
 @router.get("/api/jobs/{job_id}/artifacts/{name}")
