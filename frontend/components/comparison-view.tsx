@@ -71,8 +71,8 @@ export function ComparisonView({
           <Row label="Video" left={facts[0].videoId} right={facts[1].videoId} />
           <Row
             label="Interval (s)"
-            left={`${facts[0].startS}–${facts[0].endS ?? "end"}`}
-            right={`${facts[1].startS}–${facts[1].endS ?? "end"}`}
+            left={formatInterval(facts[0])}
+            right={formatInterval(facts[1])}
           />
           <Row
             label="Detector"
@@ -103,6 +103,11 @@ export function ComparisonView({
       </table>
     </section>
   );
+}
+
+function formatInterval(facts: RunFacts): string {
+  if (facts.startS == null) return "not recorded";
+  return `${facts.startS}–${facts.endS ?? "end"}`;
 }
 
 function Row({
