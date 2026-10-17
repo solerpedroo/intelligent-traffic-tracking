@@ -8,10 +8,10 @@ from vision.contracts.base import Contract, NonNegativeInt, Seconds
 
 
 class VideoLimits(Contract):
-    max_bytes: Annotated[int, Field(gt=0)] = 512 * 1024 * 1024
-    max_duration_s: Annotated[float, Field(gt=0)] = 300.0
+    max_bytes: Annotated[int, Field(gt=0)] = 4 * 1024 * 1024 * 1024
+    max_duration_s: Annotated[float, Field(gt=0)] = 45 * 60
     max_pixels: Annotated[int, Field(gt=0)] = 1920 * 1080
-    max_frames: Annotated[int, Field(gt=0)] = 36_000
+    max_frames: Annotated[int, Field(gt=0)] = 45 * 60 * 60
 
 
 class VideoMetadata(Contract):
