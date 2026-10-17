@@ -94,7 +94,8 @@ CSV retains original frame indices/timestamps and their exported counterparts.
 H.264 is lossy; the PNG preview retains the decoded BGR frame exactly.
 
 Input: local MP4, one video stream, square pixels and no rotation. Default limits:
-512 MiB, 300 seconds, 1920×1080 pixels per frame, and 36,000 frames. Override with
+4 GiB, 45 minutes, 1920×1080 pixels per frame, and 162,000 frames (45 minutes at
+60 fps, or longer at a lower rate). A 40-minute video fits. Override with
 `--limits examples/video-limits.json` (edit a local copy). Video export requires
 even dimensions and drops audio. Copy-only mode performs no inference; select
 `--model` to enable detection.
