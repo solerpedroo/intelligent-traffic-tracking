@@ -110,9 +110,11 @@ permanece o mesmo. Referências: [Next.js](https://nextjs.org/docs/app/getting-s
 - Entrada inicial: arquivo local MP4/ISO-BMFF, exatamente um stream de vídeo,
   codec permitido, pixels quadrados, sem rotação. Não aceitar URLs, playlists
   ou sequências de imagens implicitamente. Áudio não é copiado na exportação.
-- Limites padrão configuráveis por JSON: 512 MiB, 300 s, 2.073.600 pixels/frame
-  e 36.000 frames decodificados. Checar headers e durante decode; metadados
-  são declarados, não prova de integridade do arquivo inteiro.
+- Limites padrão configuráveis por JSON. Em 2026-10-15 eram 512 MiB, 300 s,
+  2.073.600 pixels/frame e 36.000 frames. Em 2026-10-17 passaram a 4 GiB,
+  45 minutos, a mesma resolução e 162.000 frames, para aceitar vídeos de cerca
+  de 40 minutos. Checar headers e durante decode; metadados são declarados,
+  não prova de integridade do arquivo inteiro.
 - Usar PTS×time_base em ordem de apresentação. Tempo zero é o primeiro frame
   do stream, preservando esse origin no metadata; recorte [start_s,end_s) não
   renumera frames/timestamps de origem. Rejeitar PTS ausente/não crescente
