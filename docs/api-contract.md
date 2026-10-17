@@ -51,8 +51,9 @@ SQLite em `TRAFFIC_DATA_DIR/traffic.sqlite` (padrão `data/`). Vídeos em
 
 Download só aceita um nome da lista interna. `..` e caminhos compostos não
 resolvem arquivo. O preview de heatmap só aceita um PNG cujo nome fica
-diretamente em `heatmaps/`. Upload acima de `TRAFFIC_MAX_UPLOAD_BYTES` (512 MiB) ou da
-cota `TRAFFIC_QUOTA_BYTES` responde 413. Retenção
+diretamente em `heatmaps/`. Upload acima de `TRAFFIC_MAX_UPLOAD_BYTES` (4 GiB) ou da
+cota `TRAFFIC_QUOTA_BYTES` (16 GiB) responde 413. O probe também recusa vídeo
+acima de 45 minutos ou de 162.000 frames. Retenção
 `TRAFFIC_RETENTION_SECONDS` apaga jobs terminados; não apaga `queued` nem
 `running`.
 
