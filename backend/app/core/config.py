@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     data_dir: Path = Path("data")
     checkpoint_dir: Path = Path("checkpoints")
-    max_upload_bytes: int = 512 * 1024 * 1024
-    quota_bytes: int = 2 * 1024 * 1024 * 1024
+    max_upload_bytes: int = 4 * 1024 * 1024 * 1024
+    quota_bytes: int = 16 * 1024 * 1024 * 1024
     retention_seconds: int = 7 * 24 * 3600
     stale_after_seconds: int = 30
 
